@@ -1,0 +1,5 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.aynu.api.config.RequestIdRelayConfiguration, \
+  com.aynu.api.config.RoleCacheConfig, \
+  com.aynu.api.config.FallbackConfig, \
+  com.aynu.api.config.CategoryCacheConfig
