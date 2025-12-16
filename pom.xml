@@ -13,6 +13,11 @@
         <module>api</module>
         <module>gateway</module>
         <module>user</module>
+        <module>item</module>
+        <module>order</module>
+        <module>notification</module>
+        <module>storage</module>
+        <module>review</module>
     </modules>
     <packaging>pom</packaging>
 

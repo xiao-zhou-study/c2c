@@ -1,0 +1,47 @@
+server:
+  port: 8083  #端口
+  tomcat:
+    uri-encoding: UTF-8   #服务编码
+spring:
+  profiles:
+    active: dev
+  application:
+    name: item-service
+  cloud:
+    nacos:
+      config:
+        file-extension: yaml
+        shared-configs: # 共享配置
+          - data-id: shared-spring.yaml # 共享spring配置
+            refresh: false
+          - data-id: shared-redis.yaml # 共享redis配置
+            refresh: false
+          - data-id: shared-mybatis.yaml # 共享mybatis配置
+            refresh: false
+          - data-id: shared-logs.yaml # 共享日志配置
+            refresh: false
+          - data-id: shared-feign.yaml # 共享feign配置
+            refresh: false
+        namespace: 66f565f6-6b64-408c-a3c3-8f30ce3b6711
+xy:
+  swagger:
+    enable: true
+    enableResponseWrap: true
+    package-path: com.aynu.item.controller
+    title: 校园物品共享平台 - 用户中心接口文档
+    description: 该服务用户管理、用户信息管理
+    contact-name: 安阳师范学院
+    version: v1.0
+  auth:
+    resource:
+      enable: true
+      excludeLoginPaths:
+        - /students/register
+        - /users/detail/{isStaff}
+        - /users/list
+        - GET:/users/{id}
+        - /users/{id}/type
+        - /users/ids
+        - /users/me
+  jdbc:
+    database: xy_item

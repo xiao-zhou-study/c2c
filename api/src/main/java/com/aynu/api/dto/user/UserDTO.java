@@ -15,7 +15,7 @@ import javax.validation.constraints.Pattern;
 public class UserDTO {
     @ApiModelProperty(value = "用户id", example = "1")
     private Long id;
-    @ApiModelProperty(value = "手机", example = "13890011009")
+    @ApiModelProperty(value = "手机", example = "13890017009")
     @Pattern(regexp = RegexConstants.PHONE_PATTERN, message = "手机号格式错误")
     private String cellPhone;
     @ApiModelProperty(value = "用户名称/昵称", example = "李四")

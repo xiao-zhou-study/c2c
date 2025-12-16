@@ -3,7 +3,7 @@ package com.aynu.common.utils;
 /**
  * @ClassName SignUtils
  * @author wusongsong
- * @since 2022/7/3 11:25
+ * @since 2022/7/3 17:25
  * @version 1.0.0
  **/
 

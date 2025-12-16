@@ -19,7 +19,7 @@ public class R<T> {
     private String msg;
     @ApiModelProperty(value = "响应数据")
     private T data;
-    @ApiModelProperty(value = "请求id", example = "1af123c11412e")
+    @ApiModelProperty(value = "请求id", example = "1af123c17412e")
     private String requestId;
 
     public static R<Void> ok() {
