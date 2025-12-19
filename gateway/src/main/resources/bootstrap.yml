@@ -41,28 +41,28 @@ spring:
         - id: order
           uri: lb://order-service
           predicates:
-            - Path=/orders/**
+            - Path=/os/**
           filters:
             - PreserveHostHeader
         # 存储服务路由
         - id: storage
           uri: lb://storage-service
           predicates:
-            - Path=/storages/**
+            - Path=/ss/**
           filters:
             - PreserveHostHeader
         # 评价服务路由
         - id: review
           uri: lb://review-service
           predicates:
-            - Path=/reviews/**
+            - Path=/rs/**
           filters:
             - PreserveHostHeader
         # 通知服务路由
         - id: notification
           uri: lb://notification-service
           predicates:
-            - Path=/notifications/**
+            - Path=/ns/**
           filters:
             - PreserveHostHeader
       default-filters:
