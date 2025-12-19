@@ -1,5 +1,6 @@
 package com.aynu.user.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 import static com.aynu.common.utils.AvatarUtils.getRandomAvatar;
 
@@ -47,13 +50,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
                 .setUsername(userDTO.getUsername())
                 .setDepartment(userDTO.getDepartment())
                 .setEmail(userDTO.getEmail())
-                .setPasswordHash(password)
-                .setCreditScore(100)
-                .setAvatarUrl(getRandomAvatar())
-                .setIsVerified(false)
-                .setStatus(1)
-                .setCreatedAt(System.currentTimeMillis())
-                .setUpdatedAt(System.currentTimeMillis());
+                .setPasswordHash(password);
+        setDefaultUserInfo(users);
+
         save(users);
     }
 
@@ -105,6 +104,28 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         loginUserDTO.setRememberMe(loginDTO.getRememberMe());
 
         return loginUserDTO;
+    }
+
+    @Override
+    public List<UserDTO> queryUserByIds(Iterable<Long> ids) {
+        List<Users> list = lambdaQuery().in(Users::getId, ids).eq(Users::getStatus, 1).list();
+        return list.stream().map(Users::toDTO).toList();
+    }
+
+    @Override
+    public void addStaff(UserDTO userDTO) {
+        Users users = BeanUtil.toBean(userDTO, Users.class);
+        setDefaultUserInfo(users);
+        save(users);
+    }
+
+    private void setDefaultUserInfo(Users users) {
+        users.setCreditScore(100);
+        users.setAvatarUrl(getRandomAvatar());
+        users.setIsVerified(false);
+        users.setStatus(1);
+        users.setCreatedAt(System.currentTimeMillis());
+        users.setUpdatedAt(System.currentTimeMillis());
     }
 
 }

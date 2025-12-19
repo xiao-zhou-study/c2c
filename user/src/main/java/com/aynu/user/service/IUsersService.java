@@ -6,6 +6,8 @@ import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.user.domain.po.Users;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
  * <p>
  * 用户基本信息表，存储用户核心登录和基础信息 服务类
@@ -19,4 +21,8 @@ public interface IUsersService extends IService<Users> {
     void saveUser(UserDTO userDTO);
 
     LoginUserDTO queryUserDetail(LoginFormDTO loginDTO, boolean isStaff);
+
+    List<UserDTO> queryUserByIds(Iterable<Long> ids);
+
+    void addStaff(UserDTO userDTO);
 }

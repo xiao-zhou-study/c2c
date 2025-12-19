@@ -9,6 +9,8 @@ import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("users")
 @RequiredArgsConstructor
@@ -27,5 +29,17 @@ public class UserController {
     @PostMapping("detail/{isStaff}")
     public LoginUserDTO queryUserDetail(@RequestBody LoginFormDTO loginDTO, @PathVariable("isStaff") boolean isStaff) {
         return usersService.queryUserDetail(loginDTO, isStaff);
+    }
+
+    @ApiOperation("根据userId批量查询用户信息")
+    @GetMapping("list")
+    public List<UserDTO> queryUserByIds(@RequestParam("ids") Iterable<Long> ids) {
+        return usersService.queryUserByIds(ids);
+    }
+
+    @ApiOperation("新增管理人员")
+    @PostMapping("addStaff")
+    public void addStaff(@RequestBody UserDTO userDTO) {
+        usersService.addStaff(userDTO);
     }
 }

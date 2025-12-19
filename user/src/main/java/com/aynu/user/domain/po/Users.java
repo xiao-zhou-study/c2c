@@ -1,5 +1,7 @@
 package com.aynu.user.domain.po;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.aynu.api.dto.user.UserDTO;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -116,6 +118,11 @@ public class Users implements Serializable {
      * 记录更新时间戳（毫秒级）
      */
     private Long updatedAt;
+
+    public UserDTO toDTO() {
+        return BeanUtil.toBean(this, UserDTO.class);
+
+    }
 
 
 }
