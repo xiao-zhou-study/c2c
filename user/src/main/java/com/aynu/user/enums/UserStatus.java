@@ -1,8 +1,8 @@
 package com.aynu.user.enums;
 
-import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.user.constants.UserErrorInfo;
+import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.Getter;
 
 @Getter
@@ -11,8 +11,8 @@ public enum UserStatus {
     NORMAL(1, "已激活"),
     ;
     @EnumValue
-    int value;
-    String desc;
+    final int value;
+    final String desc;
 
     UserStatus(Integer value, String desc) {
         this.value = value;

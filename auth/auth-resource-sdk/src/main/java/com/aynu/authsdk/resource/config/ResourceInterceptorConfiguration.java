@@ -41,12 +41,6 @@ public class ResourceInterceptorConfiguration implements WebMvcConfigurer {
             registration.excludePathPatterns(authProperties.getExcludeLoginPaths());
         }
         // 2.3.排除swagger路径
-        registration.excludePathPatterns(
-                "/v2/**",
-                "/v3/**",
-                "/swagger-resources/**",
-                "/webjars/**",
-                "/doc.html"
-        );
+        registration.excludePathPatterns("/v2/**", "/v3/**", "/swagger-resources/**", "/webjars/**", "/doc.html");
     }
 }

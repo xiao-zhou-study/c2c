@@ -9,45 +9,91 @@ import lombok.Data;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
+import java.time.LocalDate;
 
 @Data
 @ApiModel(description = "用户详情")
 public class UserDTO {
-    @ApiModelProperty(value = "用户id", example = "1")
+    @ApiModelProperty(value = "主键ID，使用雪花算法生成", example = "1234567890123456789")
     private Long id;
-    @ApiModelProperty(value = "手机", example = "13890017009")
+
+    @ApiModelProperty(value = "用户名（登录用），唯一", example = "zhangsan")
+    @Size(max = 50, message = "用户名长度不能超过50个字符")
+    private String username;
+
+    @ApiModelProperty(value = "用户邮箱，唯一，用于登录/找回密码", example = "zhangsan@example.com")
+    @Email
+    @Size(max = 100, message = "邮箱长度不能超过100个字符")
+    private String email;
+
+    @ApiModelProperty(value = "手机号码，可选", example = "13890017009")
     @Pattern(regexp = RegexConstants.PHONE_PATTERN, message = "手机号格式错误")
-    private String cellPhone;
-    @ApiModelProperty(value = "用户名称/昵称", example = "李四")
-    private String name;
-    @ApiModelProperty(value = "用户类型，1-其他员工,2-普通学员，3-老师", example = "2")
-    @EnumValid(enumeration = {1,2,3}, message = "用户类型错误")
+    private String phone;
+
+    @ApiModelProperty(value = "密码，用于登录", example = "123456")
+    @Size(min = 6, max = 20, message = "密码长度必须在6-20个字符之间")
+    private String password;
+
+    @ApiModelProperty(value = "用户昵称，显示用", example = "张三")
+    @Size(max = 100, message = "昵称长度不能超过100个字符")
+    private String nickname;
+
+    @ApiModelProperty(value = "头像图片URL地址", example = "default-user-icon.jpg")
+    @Size(max = 500, message = "头像URL长度不能超过500个字符")
+    private String avatarUrl;
+
+    @ApiModelProperty(value = "学号，可选", example = "2023001001")
+    @Size(max = 50, message = "学号长度不能超过50个字符")
+    private String studentId;
+
+    @ApiModelProperty(value = "所属学校", example = "安阳师范学院")
+    @Size(max = 100, message = "学校名称长度不能超过100个字符")
+    private String school;
+
+    @ApiModelProperty(value = "所属院系", example = "计算机与信息工程学院")
+    @Size(max = 100, message = "院系名称长度不能超过100个字符")
+    private String department;
+
+    @ApiModelProperty(value = "年级（如2023级）", example = "2023级")
+    @Size(max = 20, message = "年级信息长度不能超过20个字符")
+    private String grade;
+
+    @ApiModelProperty(value = "真实姓名", example = "张三")
+    @Size(max = 50, message = "真实姓名长度不能超过50个字符")
+    private String realName;
+
+    @ApiModelProperty(value = "性别：1-男 2-女 0-保密", example = "1")
+    private Integer gender;
+
+    @ApiModelProperty(value = "出生日期", example = "2000-01-01")
+    private LocalDate birthday;
+
+    @ApiModelProperty(value = "个人简介/个性签名", example = "热爱编程，喜欢分享技术")
+    @Size(max = 65535, message = "个人简介长度不能超过65535个字符")
+    private String bio;
+
+    @ApiModelProperty(value = "所属校区", example = "安阳师范学院本部")
+    @Size(max = 100, message = "校区名称长度不能超过100个字符")
+    private String campus;
+
+    @ApiModelProperty(value = "宿舍号", example = "东区1号楼201室")
+    @Size(max = 100, message = "宿舍号长度不能超过100个字符")
+    private String dormitory;
+
+    @ApiModelProperty(value = "QQ号码", example = "123456789")
+    @Size(max = 20, message = "QQ号码长度不能超过20个字符")
+    private String qq;
+
+    @ApiModelProperty(value = "微信号", example = "wechat123")
+    @Size(max = 50, message = "微信号长度不能超过50个字符")
+    private String wechat;
+
+    @ApiModelProperty(value = "用户类型，1-普通学生,2-管理员", example = "1")
+    @EnumValid(enumeration = {1, 2}, message = "用户类型错误")
     @NotNull
     private Integer type;
-    @ApiModelProperty(value = "角色id，老师和学生不用填", example = "5")
+
+    @ApiModelProperty(value = "角色id，学生不用填", example = "5")
     private Long roleId;
-    @ApiModelProperty(value = "头像", example = "default-user-icon.jpg")
-    private String icon;
-    @ApiModelProperty(value = "岗位", example = "讲师")
-    private String job;
-    @ApiModelProperty(value = "个人介绍", example = "黑马高级Java讲师")
-    private String intro;
-    @ApiModelProperty(value = "形象照地址", example = "default-teacher-photo.jpg")
-    private String photo;
-    @ApiModelProperty(value = "用户名", example = "13800010004")
-    private String username;
-    @ApiModelProperty(value = "邮箱")
-    @Email
-    private String email;
-    @ApiModelProperty(value = "QQ号码")
-    private String qq;
-    @ApiModelProperty(value = "省")
-    private String province;
-    @ApiModelProperty(value = "市")
-    private String city;
-    @ApiModelProperty(value = "区")
-    private String district;
-    @ApiModelProperty(value = "性别：0-男性，1-女性", example = "0")
-    @EnumValid(enumeration = {0, 1}, message = "性别格式不正确")
-    private Integer gender;
 }

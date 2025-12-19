@@ -15,6 +15,7 @@ public class UserFormDTO extends UserDTO {
     @ApiModelProperty(value = "原始密码", example = "123321")
     @NotNull
     private String oldPassword;
+
     @ApiModelProperty(value = "新密码", example = "123321")
     @NotNull
     private String password;

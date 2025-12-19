@@ -3,8 +3,8 @@ package com.aynu.auth.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.aynu.api.dto.auth.RoleDTO;
-import com.aynu.auth.domain.po.Role;
-import com.aynu.auth.service.IRoleService;
+import com.aynu.auth.domain.po.Roles;
+import com.aynu.auth.service.IRolesService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -26,37 +26,25 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RoleController {
 
-    private final IRoleService roleService;
+    private final IRolesService roleService;
 
-    @ApiOperation("查询员工角色列表")
+    @ApiOperation("查询角色列表")
     @GetMapping("/list")
-    public List<RoleDTO> listAllRoles(){
+    public List<RoleDTO> listAllRoles() {
         // 1.查询
-        List<Role> list = roleService.list();
+        List<Roles> list = roleService.list();
         if (CollectionUtil.isEmpty(list)) {
             return Collections.emptyList();
         }
         // 3.数据转换
-        return list.stream().map(Role::toDTO).collect(Collectors.toList());
-    }
-
-    @ApiOperation("查询员工角色列表")
-    @GetMapping
-    public List<RoleDTO> listStaffRoles(){
-        // 1.查询
-        List<Role> list = roleService.lambdaQuery().eq(Role::getType, Role.RoleType.CUSTOM).list();
-        if (CollectionUtil.isEmpty(list)) {
-            return Collections.emptyList();
-        }
-        // 3.数据转换
-        return list.stream().map(Role::toDTO).collect(Collectors.toList());
+        return list.stream().map(Roles::toDTO).collect(Collectors.toList());
     }
 
     @ApiOperation("根据id查询角色")
     @GetMapping("/{id}")
-    public RoleDTO queryRoleById(@PathVariable("id") Long id){
+    public RoleDTO queryRoleById(@PathVariable("id") Long id) {
         // 1.查询
-        Role role = roleService.getById(id);
+        Roles role = roleService.getById(id);
         if (role == null) {
             return null;
         }
@@ -65,12 +53,12 @@ public class RoleController {
     }
 
 
-
     @ApiOperation("新增角色")
     @PostMapping
     public RoleDTO saveRole(@RequestBody RoleDTO roleDTO) {
-        Role role = new Role(roleDTO);
-        role.setType(Role.RoleType.CUSTOM);
+        Roles role = new Roles(roleDTO);
+        role.setCreatedAt(System.currentTimeMillis());
+        role.setUpdatedAt(System.currentTimeMillis());
         // 1.新增
         roleService.save(role);
         // 2.返回
@@ -80,12 +68,10 @@ public class RoleController {
 
     @ApiOperation("修改角色信息")
     @PutMapping("{id}")
-    public void updateRole(
-            @RequestBody RoleDTO roleDTO,
-            @ApiParam(value = "角色id", example = "1") @PathVariable("id") Long id
-    ) {
+    public void updateRole(@RequestBody RoleDTO roleDTO,
+                           @ApiParam(value = "角色id", example = "1") @PathVariable("id") Long id) {
         // 1.数据转换
-        Role role = new Role(roleDTO);
+        Roles role = new Roles(roleDTO);
         role.setId(id);
         // 2.修改
         roleService.updateById(role);

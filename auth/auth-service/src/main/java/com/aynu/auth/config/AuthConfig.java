@@ -17,25 +17,22 @@ public class AuthConfig {
 
     @Bean
     @ConfigurationProperties(prefix = "encrypt")
-    public KeyProperties keyProperties(){
+    public KeyProperties keyProperties() {
         return new KeyProperties();
     }
 
     @Bean
-    public KeyPair keyPair(KeyProperties keyProperties){
+    public KeyPair keyPair(KeyProperties keyProperties) {
         // 获取秘钥工厂
-        KeyStoreKeyFactory keyStoreKeyFactory =
-                new KeyStoreKeyFactory(
-                        keyProperties.getKeyStore().getLocation(),
-                        keyProperties.getKeyStore().getPassword().toCharArray());
+        KeyStoreKeyFactory keyStoreKeyFactory = new KeyStoreKeyFactory(keyProperties.getKeyStore().getLocation(),
+                keyProperties.getKeyStore().getPassword().toCharArray());
         //读取钥匙对
-        return keyStoreKeyFactory.getKeyPair(
-                keyProperties.getKeyStore().getAlias(),
+        return keyStoreKeyFactory.getKeyPair(keyProperties.getKeyStore().getAlias(),
                 keyProperties.getKeyStore().getSecret().toCharArray());
     }
 
     @Bean
-    public TomcatContextCustomizer cookieTomcatContextCustomizer(){
+    public TomcatContextCustomizer cookieTomcatContextCustomizer() {
         return context -> context.setCookieProcessor(new LegacyCookieProcessor());
     }
 }

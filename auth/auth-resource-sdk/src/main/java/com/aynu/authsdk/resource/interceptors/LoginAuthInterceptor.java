@@ -11,7 +11,9 @@ import javax.servlet.http.HttpServletResponse;
 public class LoginAuthInterceptor implements HandlerInterceptor {
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response,
+                             Object handler) throws Exception {
         // 1.尝试获取用户信息
         Long userId = UserContext.getUser();
         // 2.判断是否登录

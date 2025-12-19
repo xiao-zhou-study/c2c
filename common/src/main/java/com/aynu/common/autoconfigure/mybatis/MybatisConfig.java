@@ -1,6 +1,5 @@
 package com.aynu.common.autoconfigure.mybatis;
 
-
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
@@ -15,12 +14,12 @@ import org.springframework.context.annotation.Configuration;
 public class MybatisConfig {
 
     /**
-     * @deprecated 存在任务更新数据导致updater写入0或null的问题，暂时废弃
      * @see MyBatisAutoFillInterceptor 通过自定义拦截器来实现自动注入creater和updater
+     * @deprecated 存在任务更新数据导致updater写入0或null的问题，暂时废弃
      */
     // @Bean
     // @ConditionalOnMissingBean
-    public BaseMetaObjectHandler baseMetaObjectHandler(){
+    public BaseMetaObjectHandler baseMetaObjectHandler() {
         return new BaseMetaObjectHandler();
     }
 
@@ -28,7 +27,8 @@ public class MybatisConfig {
     @ConditionalOnMissingBean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
+        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor();
+        paginationInnerInterceptor.setDbType(DbType.MYSQL);
         paginationInnerInterceptor.setMaxLimit(200L);
         interceptor.addInnerInterceptor(paginationInnerInterceptor);
         interceptor.addInnerInterceptor(new MyBatisAutoFillInterceptor());

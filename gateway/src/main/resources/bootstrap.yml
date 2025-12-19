@@ -30,6 +30,41 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/us/**
+        # 商品服务路由
+        - id: item
+          uri: lb://item-service
+          predicates:
+            - Path=/is/**
+          filters:
+            - PreserveHostHeader
+        # 订单服务路由
+        - id: order
+          uri: lb://order-service
+          predicates:
+            - Path=/orders/**
+          filters:
+            - PreserveHostHeader
+        # 存储服务路由
+        - id: storage
+          uri: lb://storage-service
+          predicates:
+            - Path=/storages/**
+          filters:
+            - PreserveHostHeader
+        # 评价服务路由
+        - id: review
+          uri: lb://review-service
+          predicates:
+            - Path=/reviews/**
+          filters:
+            - PreserveHostHeader
+        # 通知服务路由
+        - id: notification
+          uri: lb://notification-service
+          predicates:
+            - Path=/notifications/**
+          filters:
+            - PreserveHostHeader
       default-filters:
         - StripPrefix=1
       globalcors: # 全局的跨域处理
@@ -44,7 +79,7 @@ spring:
               - "DELETE"
               - "PUT"
               - "OPTIONS"
-            allowedHeaders: "*" # 允许在请求中携带的头信息
+            allowedHeaders: "*" # 允令在请求中携带的头信息
             allowCredentials: true # 是否允许携带cookie
             maxAge: 360000 # 这次跨域检测的有效期
 

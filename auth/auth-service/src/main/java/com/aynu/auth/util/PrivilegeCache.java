@@ -2,7 +2,6 @@ package com.aynu.auth.util;
 
 import cn.hutool.json.JSONUtil;
 import com.aynu.auth.common.domain.PrivilegeRoleDTO;
-import com.aynu.auth.domain.po.Privilege;
 import com.aynu.common.utils.CollUtils;
 import com.aynu.common.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static com.aynu.auth.common.constants.JwtConstants.AUTH_PRIVILEGE_KEY;
 import static com.aynu.auth.common.constants.JwtConstants.AUTH_PRIVILEGE_VERSION_KEY;
@@ -41,21 +39,6 @@ public class PrivilegeCache {
         incrementVersion();
     }
 
-    public void cacheSinglePrivilege(Privilege p, Set<Long> roleIds) {
-        try {
-            PrivilegeRoleDTO privilegeRoleDTO = new PrivilegeRoleDTO();
-            privilegeRoleDTO.setId(p.getId());
-            privilegeRoleDTO.setAntPath(p.getMethod() + ":" + p.getUri());
-            privilegeRoleDTO.setRoles(roleIds);
-            privilegeRoleDTO.setInternal(p.getInternal());
-            hashOps.put(p.getId().toString(), JSONUtil.toJsonStr(privilegeRoleDTO));
-            incrementVersion();
-        } catch (Exception e) {
-            log.error("缓存权限信息失败。 ->", e);
-            throw new RuntimeException(e);
-        }
-    }
-
     public void removePrivilegeCacheById(Long id) {
         hashOps.delete(id);
         incrementVersion();
@@ -74,7 +57,7 @@ public class PrivilegeCache {
     public void removeCacheByRoleId(Long id) {
         // 查询出所有权限信息
         Map<String, String> cacheMap = hashOps.entries();
-        if(CollUtils.isEmpty(cacheMap)){
+        if (CollUtils.isEmpty(cacheMap)) {
             return;
         }
         // 记录修改的数据
@@ -85,7 +68,7 @@ public class PrivilegeCache {
             PrivilegeRoleDTO prDTO = JsonUtils.toBean(value, PrivilegeRoleDTO.class);
             // 尝试移除角色id
             boolean remove = prDTO.getRoles().remove(id);
-            if(remove){
+            if (remove) {
                 modified.put(en.getKey(), JsonUtils.toJsonStr(prDTO));
             }
         }

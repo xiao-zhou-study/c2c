@@ -1,10 +1,10 @@
 package com.aynu.api.cache;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import com.aynu.api.client.auth.AuthClient;
 import com.aynu.api.dto.auth.RoleDTO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.common.enums.UserType;
+import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -27,10 +27,10 @@ public class RoleCache {
         }
         if (UserType.STUDENT.equalsValue(u.getType())) {
             // 学生，直接返回角色名称
-            return u.getName();
+            return u.getUsername();
         } else {
             // 管理员需要拼接角色名称
-            return getRoleName(u.getRoleId()) + "-" + u.getName();
+            return getRoleName(u.getRoleId()) + "-" + u.getUsername();
         }
     }
 }

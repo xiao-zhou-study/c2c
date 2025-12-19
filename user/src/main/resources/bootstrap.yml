@@ -36,7 +36,7 @@ xy:
     resource:
       enable: true
       excludeLoginPaths:
-        - /students/register
+        - /users/register
         - /users/detail/{isStaff}
         - /users/list
         - GET:/users/{id}

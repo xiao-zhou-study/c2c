@@ -22,7 +22,7 @@ public class JwkController {
     }
 
     @GetMapping
-    public String getJwk(){
+    public String getJwk() {
         // TODO 可以加入clientId和clientSecret校验
         // 获取公钥并转码
         return Base64.encode(keyPair.getPublic().getEncoded());

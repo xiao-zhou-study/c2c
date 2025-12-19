@@ -39,7 +39,7 @@ public class AccountAuthFilter implements GlobalFilter, Ordered {
         String antPath = method + ":" + path;
 
         // 2.判断是否是无需登录的路径
-        if(isExcludePath(antPath)){
+        if (isExcludePath(antPath)) {
             // 直接放行
             return chain.filter(exchange);
         }
@@ -50,7 +50,7 @@ public class AccountAuthFilter implements GlobalFilter, Ordered {
         R<LoginUserDTO> r = authUtil.parseToken(token);
 
         // 4.如果用户是登录状态，尝试更新请求头，传递用户信息
-        if(r.success()){
+        if (r.success()) {
             exchange.mutate()
                     .request(builder -> builder.header(USER_HEADER, r.getData().getUserId().toString()))
                     .build();
@@ -65,7 +65,7 @@ public class AccountAuthFilter implements GlobalFilter, Ordered {
 
     private boolean isExcludePath(String antPath) {
         for (String pathPattern : authProperties.getExcludePath()) {
-            if(antPathMatcher.match(pathPattern, antPath)){
+            if (antPathMatcher.match(pathPattern, antPath)) {
                 return true;
             }
         }

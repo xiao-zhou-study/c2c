@@ -61,8 +61,7 @@ public class JwtTool {
         String jti = UUID.randomUUID().toString(true);
         // 2.生成jwt
         // 2.1.如果是记住我，则有效期7天，否则30分钟
-        Duration ttl = BooleanUtils.isTrue(userDetail.getRememberMe()) ?
-                JwtConstants.JWT_REMEMBER_ME_TTL : JWT_REFRESH_TTL;
+        Duration ttl = BooleanUtils.isTrue(userDetail.getRememberMe()) ? JwtConstants.JWT_REMEMBER_ME_TTL : JWT_REFRESH_TTL;
         // 2.2.生成token
         String token = JWT.create()
                 .setJWTId(jti)
@@ -71,8 +70,7 @@ public class JwtTool {
                 .setSigner(jwtSigner)
                 .sign();
         // 3.缓存jti，有效期与token一致，过期或删除JTI后，对应的refresh-token失效
-        stringRedisTemplate.opsForValue()
-                .set(JwtConstants.JWT_REDIS_KEY_PREFIX + userDetail.getUserId(), jti, ttl);
+        stringRedisTemplate.opsForValue().set(JwtConstants.JWT_REDIS_KEY_PREFIX + userDetail.getUserId(), jti, ttl);
         return token;
     }
 
