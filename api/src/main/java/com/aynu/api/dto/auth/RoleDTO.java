@@ -33,14 +33,14 @@ public class RoleDTO implements Serializable {
     private Long id;
 
     /**
-     * 角色代号，例如：admin
+     * 角色名称，例如：admin
      */
-    @ApiModelProperty(value = "角色代号", example = "admin")
-    private String code;
+    @ApiModelProperty(value = "角色名称", example = "admin")
+    private String name;
 
     /**
      * 角色描述
      */
-    @ApiModelProperty(value = "角色名称", example = "教师")
-    private String name;
+    @ApiModelProperty(value = "角色描述", example = "教师")
+    private String description;
 }

@@ -63,8 +63,8 @@ public class Roles implements Serializable {
     public RoleDTO toDTO() {
         RoleDTO dto = new RoleDTO();
         dto.setId(this.id);
-        dto.setCode(this.name);
-        dto.setName(this.description);
+        dto.setName(this.name);
+        dto.setDescription(this.description);
         return dto;
     }
 
@@ -75,8 +75,8 @@ public class Roles implements Serializable {
      */
     public Roles(RoleDTO dto) {
         if (dto != null) {
-            this.name = dto.getCode();
-            this.description = dto.getName();
+            this.name = dto.getName();
+            this.description = dto.getDescription();
         }
     }
 

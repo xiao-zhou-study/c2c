@@ -1,11 +1,14 @@
 package com.aynu.user.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aynu.api.client.storage.FileClient;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.common.domain.dto.LoginUserDTO;
+import com.aynu.common.domain.dto.PageDTO;
+import com.aynu.common.domain.query.PageQuery;
 import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.common.utils.UserContext;
 import com.aynu.user.domain.dto.PasswordChangeDTO;
@@ -20,6 +23,8 @@ import com.aynu.user.mapper.UsersMapper;
 import com.aynu.user.service.IUserProfilesService;
 import com.aynu.user.service.IUserStatsService;
 import com.aynu.user.service.IUsersService;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -326,6 +331,31 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         return url;
     }
 
+    @Override
+    public PageDTO<Users> queryUserPage(PageQuery query, String keyword, Integer status) {
+        LambdaQueryChainWrapper<Users> wrapper = lambdaQuery();
+        if (StrUtil.isNotBlank(keyword)) {
+            wrapper.and(w -> {
+                w.like(Users::getUsername, keyword)
+                        .or()
+                        .like(Users::getEmail, keyword)
+                        .or()
+                        .like(Users::getPhone, keyword);
+            });
+        }
+
+        if (status != null) {
+            wrapper.eq(Users::getStatus, status);
+        }
+
+        Page<Users> page = wrapper.page(query.toMpPage("created_at", false));
+        List<Users> records = page.getRecords();
+        if (CollUtil.isEmpty(records)) {
+            return PageDTO.empty(page);
+        }
+        return PageDTO.of(page);
+    }
+
     private void setDefaultUserInfo(Users users) {
         users.setCreditScore(100);
         users.setAvatarUrl(getRandomAvatar());
@@ -340,3 +370,4 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     }
 
 }
+

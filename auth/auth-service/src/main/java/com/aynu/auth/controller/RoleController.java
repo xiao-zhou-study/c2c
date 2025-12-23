@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 /**
@@ -30,14 +29,14 @@ public class RoleController {
 
     @ApiOperation("查询角色列表")
     @GetMapping("/list")
-    public List<RoleDTO> listAllRoles() {
+    public List<Roles> listAllRoles() {
         // 1.查询
         List<Roles> list = roleService.list();
         if (CollectionUtil.isEmpty(list)) {
             return Collections.emptyList();
         }
         // 3.数据转换
-        return list.stream().map(Roles::toDTO).collect(Collectors.toList());
+        return list;
     }
 
     @ApiOperation("根据id查询角色")

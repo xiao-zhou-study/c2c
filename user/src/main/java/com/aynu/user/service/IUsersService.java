@@ -3,10 +3,13 @@ package com.aynu.user.service;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.common.domain.dto.LoginUserDTO;
+import com.aynu.common.domain.dto.PageDTO;
+import com.aynu.common.domain.query.PageQuery;
 import com.aynu.user.domain.dto.PasswordChangeDTO;
 import com.aynu.user.domain.dto.UserProfileDTO;
 import com.aynu.user.domain.dto.VerifyDTO;
 import com.aynu.user.domain.po.Users;
+import com.aynu.user.domain.query.UserPageQuery;
 import com.aynu.user.domain.vo.UserProfileVO;
 import com.aynu.user.domain.vo.UserStatsVO;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -47,4 +50,6 @@ public interface IUsersService extends IService<Users> {
     void verifyUser(VerifyDTO verifyDTO);
 
     String uploadAvatar(MultipartFile file);
+
+    PageDTO<Users> queryUserPage(PageQuery query, String keyword, Integer status);
 }
