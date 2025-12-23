@@ -1,4 +1,4 @@
-package com.aynu.item.domain.vo;
+package com.aynu.api.dto.item;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ItemsVO implements Serializable {
-
     /**
      * 主键ID，自增
      */
@@ -136,4 +135,5 @@ public class ItemsVO implements Serializable {
      * 平均评分（保留2位小数）
      */
     private BigDecimal averageRating;
+
 }

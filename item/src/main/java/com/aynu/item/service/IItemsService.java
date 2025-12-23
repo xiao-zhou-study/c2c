@@ -1,10 +1,10 @@
 package com.aynu.item.service;
 
+import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.item.domain.dto.ItemsDTO;
 import com.aynu.item.domain.po.Items;
-import com.aynu.item.domain.vo.ItemsVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.math.BigDecimal;
@@ -102,4 +102,19 @@ public interface IItemsService extends IService<Items> {
      * @return 统计信息
      */
     Object getStats();
+
+    /**
+     * 获取推荐物品
+     * @param limit 数量限制
+     * @return 推荐物品列表
+     */
+    List<ItemsVO> getRecommendedItems(Integer limit);
+
+    /**
+     * 获取热门物品
+     * @param days 天数
+     * @param limit 数量限制
+     * @return 热门物品列表
+     */
+    List<ItemsVO> getHotItems(Integer days, Integer limit);
 }

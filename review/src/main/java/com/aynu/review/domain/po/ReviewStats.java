@@ -1,13 +1,15 @@
 package com.aynu.review.domain.po;
 
-import java.math.BigDecimal;
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import java.io.Serializable;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * <p>
@@ -23,6 +25,7 @@ import lombok.experimental.Accessors;
 @TableName("review_stats")
 public class ReviewStats implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

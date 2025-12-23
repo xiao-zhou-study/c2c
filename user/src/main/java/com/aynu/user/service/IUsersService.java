@@ -3,8 +3,14 @@ package com.aynu.user.service;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.common.domain.dto.LoginUserDTO;
+import com.aynu.user.domain.dto.PasswordChangeDTO;
+import com.aynu.user.domain.dto.UserProfileDTO;
+import com.aynu.user.domain.dto.VerifyDTO;
 import com.aynu.user.domain.po.Users;
+import com.aynu.user.domain.vo.UserProfileVO;
+import com.aynu.user.domain.vo.UserStatsVO;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -25,4 +31,20 @@ public interface IUsersService extends IService<Users> {
     List<UserDTO> queryUserByIds(Iterable<Long> ids);
 
     void addStaff(UserDTO userDTO);
+
+    UserDTO getUserById(Long userId);
+
+    UserDTO updateUser(Long userId, UserDTO userDTO);
+
+    UserProfileVO getUserProfile(Long userId);
+
+    UserProfileVO updateUserProfile(Long userId, UserProfileDTO profileDTO);
+
+    UserStatsVO getUserStats(Long userId);
+
+    void changePassword(PasswordChangeDTO passwordChangeDTO);
+
+    void verifyUser(VerifyDTO verifyDTO);
+
+    String uploadAvatar(MultipartFile file);
 }

@@ -1,10 +1,10 @@
 package com.aynu.item.controller;
 
+import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.item.domain.dto.ItemStatusUpdateDTO;
 import com.aynu.item.domain.dto.ItemsDTO;
-import com.aynu.item.domain.vo.ItemsVO;
 import com.aynu.item.service.IItemsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -101,5 +101,18 @@ public class ItemsController {
     @GetMapping("/stats")
     public Object getStats() {
         return itemsService.getStats();
+    }
+
+    @ApiOperation("获取推荐物品")
+    @GetMapping("/recommended")
+    public List<ItemsVO> getRecommendedItems(@RequestParam(required = false, defaultValue = "10") Integer limit) {
+        return itemsService.getRecommendedItems(limit);
+    }
+
+    @ApiOperation("获取热门物品")
+    @GetMapping("/hot")
+    public List<ItemsVO> getHotItems(@RequestParam(required = false, defaultValue = "7") Integer days,
+                                     @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        return itemsService.getHotItems(days, limit);
     }
 }

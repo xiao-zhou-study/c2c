@@ -3,6 +3,7 @@ package com.aynu.item.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.aynu.api.client.user.UserClient;
+import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
@@ -13,7 +14,6 @@ import com.aynu.item.domain.dto.ItemsDTO;
 import com.aynu.item.domain.po.Categories;
 import com.aynu.item.domain.po.ItemStats;
 import com.aynu.item.domain.po.Items;
-import com.aynu.item.domain.vo.ItemsVO;
 import com.aynu.item.mapper.ItemsMapper;
 import com.aynu.item.service.ICategoriesService;
 import com.aynu.item.service.IItemStatsService;
@@ -287,5 +287,79 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
                 .collect(Collectors.groupingBy(Items::getCategoryId, Collectors.counting()));
 
         return Map.of("totalCount", totalCount, "statusCount", statusCount, "categoryCount", categoryCount);
+    }
+
+    @Override
+    public List<ItemsVO> getRecommendedItems(Integer limit) {
+        // 推荐逻辑：获取收藏数最多的可借用物品
+        List<Items> items = lambdaQuery()
+                .eq(Items::getStatus, 1) // 只推荐可借用的物品
+                .orderByDesc(Items::getFavoriteCount)
+                .last("LIMIT " + limit)
+                .list();
+
+        return convertToVOList(items);
+    }
+
+    @Override
+    public List<ItemsVO> getHotItems(Integer days, Integer limit) {
+        // 热门逻辑：获取指定天数内浏览数最多的物品
+        long startTime = System.currentTimeMillis() - (days * 24 * 60 * 60 * 1000L);
+
+        List<Items> items = lambdaQuery()
+                .eq(Items::getStatus, 1) // 只显示可借用的物品
+                .ge(Items::getCreatedAt, startTime) // 创建时间在指定天数内
+                .orderByDesc(Items::getViewCount)
+                .last("LIMIT " + limit)
+                .list();
+
+        return convertToVOList(items);
+    }
+
+    private List<ItemsVO> convertToVOList(List<Items> items) {
+        if (CollUtil.isEmpty(items)) {
+            return List.of();
+        }
+
+        // 获取用户信息
+        Set<Long> userIds = items.stream().map(Items::getOwnerId).collect(Collectors.toSet());
+        List<UserDTO> userDTOS = userClient.queryUserByIds(userIds);
+        Map<Long, UserDTO> userMap = userDTOS.stream().collect(Collectors.toMap(UserDTO::getId, Function.identity()));
+
+        // 获取分类信息
+        Set<Long> categoryIds = items.stream()
+                .map(Items::getCategoryId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+
+        Map<Long, Categories> categoryMap = Map.of();
+        if (CollUtil.isNotEmpty(categoryIds)) {
+            categoryMap = categoriesService.lambdaQuery()
+                    .in(Categories::getId, categoryIds)
+                    .list()
+                    .stream()
+                    .collect(Collectors.toMap(Categories::getId, Function.identity()));
+        }
+
+        Map<Long, Categories> finalCategoryMap = categoryMap;
+        return items.stream().map(item -> {
+            ItemsVO vo = BeanUtil.toBean(item, ItemsVO.class);
+
+            // 设置用户信息
+            UserDTO userDTO = userMap.get(item.getOwnerId());
+            if (userDTO != null) {
+                vo.setUsername(userDTO.getUsername());
+                vo.setAvatar(userDTO.getAvatarUrl());
+                vo.setUserId(userDTO.getId());
+            }
+
+            // 设置分类信息
+            Categories category = finalCategoryMap.get(item.getCategoryId());
+            if (category != null) {
+                vo.setCategoryName(category.getName());
+            }
+
+            return vo;
+        }).toList();
     }
 }
