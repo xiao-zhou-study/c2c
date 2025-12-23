@@ -6,6 +6,7 @@ import com.aynu.api.client.user.UserClient;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
+import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.common.utils.StringUtils;
 import com.aynu.common.utils.UserContext;
 import com.aynu.item.domain.dto.ItemsDTO;
@@ -52,7 +53,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
 
     @Override
     @Transactional
-    public void add(ItemsDTO itemsDTO) {
+    public Long add(ItemsDTO itemsDTO) {
         Long userId = UserContext.getUser();
         Items item = BeanUtil.toBean(itemsDTO, Items.class);
         item.setOwnerId(userId);
@@ -72,6 +73,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         itemStats.setUpdatedAt(System.currentTimeMillis());
         itemStats.setCreatedAt(System.currentTimeMillis());
         itemStatsService.save(itemStats);
+        return item.getId();
     }
 
     @Override
@@ -144,5 +146,146 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         }).toList();
 
         return PageDTO.of(page, list);
+    }
+
+    @Override
+    @Transactional
+    public boolean update(Long id, ItemsDTO itemsDTO) {
+        Items item = getById(id);
+        if (item == null) {
+            return false;
+        }
+
+        // 更新物品信息
+        BeanUtil.copyProperties(itemsDTO, item);
+        item.setUpdatedAt(System.currentTimeMillis());
+
+        return updateById(item);
+    }
+
+    @Override
+    @Transactional
+    public boolean delete(Long id) {
+        Items item = getById(id);
+        if (item == null) {
+            return false;
+        }
+
+        // 软删除
+        item.setStatus(3); // 设为已下架
+        item.setUpdatedAt(System.currentTimeMillis());
+
+        return updateById(item);
+    }
+
+    @Override
+    public ItemsVO getByIdWithDetail(Long id) {
+        Items item = getById(id);
+        if (item == null) {
+            throw new BadRequestException("物品不存在");
+        }
+
+        ItemsVO vo = BeanUtil.toBean(item, ItemsVO.class);
+
+        // 获取用户信息
+        UserDTO userDTO = userClient.queryUserByIds(Set.of(item.getOwnerId())).stream().findFirst().orElse(null);
+        if (userDTO != null) {
+            vo.setUsername(userDTO.getUsername());
+            vo.setAvatar(userDTO.getAvatarUrl());
+            vo.setUserId(userDTO.getId());
+        }
+
+        // 获取分类信息
+        Categories category = categoriesService.getById(item.getCategoryId());
+        if (category != null) {
+            vo.setCategoryName(category.getName());
+        }
+
+        return vo;
+    }
+
+    @Override
+    @Transactional
+    public boolean updateStatus(Long id, Integer status, String remark) {
+        Items item = getById(id);
+        if (item == null) {
+            return false;
+        }
+
+        item.setStatus(status);
+        item.setUpdatedAt(System.currentTimeMillis());
+
+        return updateById(item);
+    }
+
+    @Override
+    @Transactional
+    public boolean batchUpdateStatus(List<Long> ids, Integer status, String remark) {
+        if (CollUtil.isEmpty(ids)) {
+            return false;
+        }
+
+        return lambdaUpdate().in(Items::getId, ids)
+                .set(Items::getStatus, status)
+                .set(Items::getUpdatedAt, System.currentTimeMillis())
+                .update();
+    }
+
+    @Override
+    public List<ItemsVO> getByUserId(Long userId) {
+        List<Items> items = lambdaQuery().eq(Items::getOwnerId, userId).orderByDesc(Items::getCreatedAt).list();
+
+        if (CollUtil.isEmpty(items)) {
+            return List.of();
+        }
+
+        // 获取分类信息
+        Set<Long> categoryIds = items.stream()
+                .map(Items::getCategoryId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+
+        Map<Long, Categories> categoryMap = Map.of();
+        if (CollUtil.isNotEmpty(categoryIds)) {
+            categoryMap = categoriesService.lambdaQuery()
+                    .in(Categories::getId, categoryIds)
+                    .list()
+                    .stream()
+                    .collect(Collectors.toMap(Categories::getId, Function.identity()));
+        }
+
+        Map<Long, Categories> finalCategoryMap = categoryMap;
+        return items.stream().map(item -> {
+            ItemsVO vo = BeanUtil.toBean(item, ItemsVO.class);
+
+            // 设置分类名称
+            Categories category = finalCategoryMap.get(item.getCategoryId());
+            if (category != null) {
+                vo.setCategoryName(category.getName());
+            }
+
+            return vo;
+        }).toList();
+    }
+
+    @Override
+    public Object getStats() {
+        // 获取物品总数
+        long totalCount = count();
+
+        // 按状态统计
+        Map<Integer, Long> statusCount = lambdaQuery().select(Items::getStatus)
+                .list()
+                .stream()
+                .collect(Collectors.groupingBy(Items::getStatus, Collectors.counting()));
+
+        // 按分类统计
+        Map<Long, Long> categoryCount = lambdaQuery().select(Items::getCategoryId)
+                .list()
+                .stream()
+                .filter(item -> item.getCategoryId() != null && item.getCategoryId() > 0)
+                .collect(Collectors.groupingBy(Items::getCategoryId, Collectors.counting()));
+
+        return Map.of("totalCount", totalCount, "statusCount", statusCount, "categoryCount", categoryCount);
     }
 }

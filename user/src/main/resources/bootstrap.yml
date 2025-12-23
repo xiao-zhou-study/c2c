@@ -39,6 +39,7 @@ xy:
         - /users/register
         - /users/detail/{isStaff}
         - /users/list
+        - /users/addStaff
         - GET:/users/{id}
         - /users/{id}/type
         - /users/ids

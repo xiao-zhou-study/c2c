@@ -115,6 +115,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Override
     public void addStaff(UserDTO userDTO) {
         Users users = BeanUtil.toBean(userDTO, Users.class);
+        String password = userDTO.getPassword();
+        password = passwordEncoder.encode(password);
+        users.setPasswordHash(password);
         setDefaultUserInfo(users);
         save(users);
     }

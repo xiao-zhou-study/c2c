@@ -23,6 +23,27 @@ spring:
           - data-id: shared-feign.yaml # 共享feign配置
             refresh: false
         namespace: 66f565f6-6b64-408c-a3c3-8f30ce3b6711
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+# 文件上传配置
+file:
+  upload:
+    base-path: /usr/myprojects/image  # 云服务器上的存储路径
+    url-prefix: http://117.72.74.175/images
+    max-size: 50
+    allowed-types: jpg,jpeg,png,gif,bmp,webp,mp4,avi,pdf,doc,docx,xls,xlsx
+    # SFTP云服务器连接配置
+    sftp:
+      host: 117.72.74.175        # 云服务器IP地址
+      port: 22                    # SSH端口，默认22
+      username: root              # 登录用户名
+      password: zhou0403..     # 登录密码
+      timeout: 30000              # 连接超时时间(毫秒)
+
 xy:
   swagger:
     enable: true
