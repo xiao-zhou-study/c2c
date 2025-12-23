@@ -41,28 +41,21 @@ public class RoleController {
 
     @ApiOperation("根据id查询角色")
     @GetMapping("/{id}")
-    public RoleDTO queryRoleById(@PathVariable("id") Long id) {
-        // 1.查询
-        Roles role = roleService.getById(id);
-        if (role == null) {
-            return null;
-        }
-        // 2.数据转换
-        return role.toDTO();
+    public Roles queryRoleById(@PathVariable("id") Long id) {
+        return roleService.getById(id);
     }
 
 
     @ApiOperation("新增角色")
     @PostMapping
-    public RoleDTO saveRole(@RequestBody RoleDTO roleDTO) {
+    public Roles saveRole(@RequestBody RoleDTO roleDTO) {
         Roles role = new Roles(roleDTO);
         role.setCreatedAt(System.currentTimeMillis());
         role.setUpdatedAt(System.currentTimeMillis());
         // 1.新增
         roleService.save(role);
         // 2.返回
-        roleDTO.setId(role.getId());
-        return roleDTO;
+        return role;
     }
 
     @ApiOperation("修改角色信息")
