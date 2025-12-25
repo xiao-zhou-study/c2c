@@ -65,6 +65,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     private final AuthClient authClient;
     private final PasswordEncoder passwordEncoder;
     private final RabbitMqHelper rabbitMqHelper;
+    private final UsersMapper userMapper;
 
     @Override
     public void saveUser(UserRegisterDTO dto) {
@@ -212,6 +213,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         UserProfiles userProfiles = userProfilesService.lambdaQuery().eq(UserProfiles::getUserId, userId).one();
         if (userProfiles == null) {
             userProfiles = new UserProfiles();
+            userProfiles.setUserId(userId);
         }
         if (user == null) {
             throw new BadRequestException("用户不存在");
@@ -237,6 +239,10 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         if (StrUtil.isNotBlank(userDTO.getGrade())) {
             user.setGrade(userDTO.getGrade());
+        }
+
+        if (userDTO.getStatus() != null) {
+            user.setStatus(userDTO.getStatus());
         }
 
         if (userDTO.getGender() != null) {
@@ -361,7 +367,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Override
     public PageDTO<UserDTO> queryUserPage(PageQuery query, String keyword, Integer status) {
-        LambdaQueryChainWrapper<Users> wrapper = lambdaQuery();
+        LambdaQueryChainWrapper<Users> wrapper = new LambdaQueryChainWrapper<>(userMapper);
         if (StrUtil.isNotBlank(keyword)) {
             wrapper.and(w -> w.like(Users::getUsername, keyword)
                     .or()
