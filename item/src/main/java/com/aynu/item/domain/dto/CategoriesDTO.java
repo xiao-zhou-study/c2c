@@ -33,11 +33,19 @@ public class CategoriesDTO implements Serializable {
     @ApiModelProperty("分类图标URL/标识")
     private String icon;
 
+    @ApiModelProperty("排序顺序")
+    private Integer sortOrder;
+
+    @ApiModelProperty("是否启用")
+    private Boolean isActive;
+
     public Categories toPO() {
         Categories categories = new Categories();
         categories.setName(name);
         categories.setDescription(description);
         categories.setIcon(icon);
+        categories.setSortOrder(sortOrder);
+        categories.setIsActive(isActive);
         return categories;
     }
 }

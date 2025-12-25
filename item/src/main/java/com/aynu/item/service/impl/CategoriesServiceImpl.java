@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CategoriesServiceImpl extends ServiceImpl<CategoriesMapper, Categories> implements ICategoriesService {
 
+
     @Override
     public List<CategoriesVO> listAll() {
         List<Categories> list = lambdaQuery().eq(Categories::getIsActive, true).list();

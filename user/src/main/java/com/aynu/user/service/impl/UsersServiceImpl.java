@@ -4,7 +4,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aynu.api.client.auth.AuthClient;
-import com.aynu.api.client.storage.FileClient;
 import com.aynu.api.dto.auth.RoleDTO;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
@@ -34,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -61,7 +59,6 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     private final IUserProfilesService userProfilesService;
     private final IUserStatsService userStatsService;
-    private final FileClient fileClient;
     private final AuthClient authClient;
     private final PasswordEncoder passwordEncoder;
     private final RabbitMqHelper rabbitMqHelper;
@@ -344,25 +341,6 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         user.setIsVerified(true);
         user.setUpdatedAt(now);
         updateById(user);
-    }
-
-    @Override
-    public String uploadAvatar(MultipartFile file) {
-        Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            throw new BadRequestException("未登录或登录已过期");
-        }
-
-        // 调用文件服务上传图片
-        String url = fileClient.uploadFile(file, "user");
-
-        // 更新用户头像
-        Users user = getById(currentUserId);
-        user.setAvatarUrl(url);
-        user.setUpdatedAt(System.currentTimeMillis());
-        updateById(user);
-
-        return url;
     }
 
     @Override

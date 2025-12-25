@@ -4,6 +4,7 @@ import com.aynu.item.domain.dto.ItemsDTO;
 import com.aynu.item.domain.po.Categories;
 import com.aynu.item.domain.vo.CategoriesVO;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -34,12 +35,16 @@ public class CategoriesController {
         return categoriesService.listAll();
     }
 
+    @ApiOperation("管理员获取所有物品分类")
+    @GetMapping("/admin")
+    public List<CategoriesVO> listAllAdmin() {
+        return categoriesService.list().stream().map(Categories::toVO).collect(Collectors.toList());
+    }
+
     @ApiOperation("新增物品分类")
     @PostMapping
     public void add(@RequestBody CategoriesDTO categoriesDTO) {
         Categories categories = categoriesDTO.toPO();
-        categories.setSortOrder(100);
-        categories.setIsActive(false);
         categories.setCreatedAt(System.currentTimeMillis());
         categories.setUpdatedAt(System.currentTimeMillis());
         categoriesService.save(categories);
@@ -59,4 +64,5 @@ public class CategoriesController {
         categories.setUpdatedAt(System.currentTimeMillis());
         categoriesService.updateById(categories);
     }
+
 }

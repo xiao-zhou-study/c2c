@@ -29,6 +29,12 @@ public class CategoriesVO implements Serializable {
     private String name;
 
     /**
+     * 分类描述，说明该分类包含的物品类型
+     */
+    @ApiModelProperty("分类描述，说明该分类包含的物品类型")
+    private String description;
+
+    /**
      * 分类图标URL/标识
      */
     @ApiModelProperty("分类图标URL/标识")
@@ -40,4 +46,21 @@ public class CategoriesVO implements Serializable {
     @ApiModelProperty("排序序号，数值越小越靠前")
     private Integer sortOrder;
 
+    /**
+     * 是否启用
+     */
+    @ApiModelProperty("是否启用")
+    private Boolean isActive;
+
+    /**
+     * 创建时间
+     */
+    @ApiModelProperty("创建时间")
+    private Long createdAt;
+
+    /**
+     * 更新时间
+     */
+    @ApiModelProperty("更新时间")
+    private Long updatedAt;
 }

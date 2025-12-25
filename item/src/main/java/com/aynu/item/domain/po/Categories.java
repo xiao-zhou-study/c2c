@@ -1,9 +1,7 @@
 package com.aynu.item.domain.po;
 
 import com.aynu.item.domain.vo.CategoriesVO;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -62,15 +60,27 @@ public class Categories implements Serializable {
     /**
      * 记录创建时间戳（毫秒级）
      */
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Long createdAt;
 
     /**
      * 记录更新时间戳（毫秒级）
      */
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Long updatedAt;
 
 
     public CategoriesVO toVO() {
-        return CategoriesVO.builder().id(this.id).name(this.name).icon(this.icon).sortOrder(this.sortOrder).build();
+        return CategoriesVO.builder()
+                .id(this.id)
+                .name(this.name)
+                .description(this.description)
+                .icon(this.icon)
+                .sortOrder(this.sortOrder)
+                .isActive(this.isActive)
+                .createdAt(this.createdAt)
+                .updatedAt(this.updatedAt)
+                .build();
     }
 }
+

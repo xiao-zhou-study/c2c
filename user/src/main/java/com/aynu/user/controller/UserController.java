@@ -17,9 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
@@ -83,14 +81,5 @@ public class UserController {
     @PostMapping("/verify")
     public void verifyUser(@Valid @RequestBody VerifyDTO verifyDTO) {
         usersService.verifyUser(verifyDTO);
-    }
-
-    @ApiOperation("上传用户头像")
-    @PostMapping("/avatar")
-    public Map<String, String> uploadAvatar(@RequestParam("file") MultipartFile file) {
-        String url = usersService.uploadAvatar(file);
-        Map<String, String> result = new HashMap<>();
-        result.put("url", url);
-        return result;
     }
 }

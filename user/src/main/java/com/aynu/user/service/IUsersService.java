@@ -43,7 +43,5 @@ public interface IUsersService extends IService<Users> {
 
     void verifyUser(VerifyDTO verifyDTO);
 
-    String uploadAvatar(MultipartFile file);
-
     PageDTO<UserDTO> queryUserPage(PageQuery query, String keyword, Integer status);
 }

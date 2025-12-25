@@ -53,7 +53,7 @@ public class AuthTokensController {
         if (host == null) {
             throw new BadRequestException("登录超时");
         }
-        String token = host.startsWith("www", 7) ? studentToken : adminToken;
+        String token = host.contains("admin") ? adminToken : studentToken;
         if (token == null) {
             throw new BadRequestException("登录超时");
         }
