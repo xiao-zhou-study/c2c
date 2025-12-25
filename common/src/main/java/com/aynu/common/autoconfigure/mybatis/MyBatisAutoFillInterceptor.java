@@ -1,8 +1,8 @@
 package com.aynu.common.autoconfigure.mybatis;
 
-import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import com.aynu.common.utils.ReflectUtils;
 import com.aynu.common.utils.UserContext;
+import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
@@ -22,30 +22,45 @@ public class MyBatisAutoFillInterceptor implements InnerInterceptor {
         insertExe(ms, parameter);
     }
 
-    private void insertExe(MappedStatement ms, Object parameter){
+    private void insertExe(MappedStatement ms, Object parameter) {
         //1.判断当前操作是否是插入操作
-        if(ms.getSqlCommandType().compareTo(SqlCommandType.INSERT) == 0) {
+        if (ms.getSqlCommandType().compareTo(SqlCommandType.INSERT) == 0) {
             //2.判断是否有updater字段，如果
-            if(ReflectUtils.containField(DATA_FIELD_NAME_CREATER, parameter.getClass())){
+            if (ReflectUtils.containField(DATA_FIELD_NAME_CREATER, parameter.getClass())) {
                 Long userId = UserContext.getUser();
                 //3.有userId也存在并设置updater
-                if(userId != null){
+                if (userId != null) {
                     //4.当前操作人设置到创建人字段
                     ReflectUtils.setFieldValue(parameter, DATA_FIELD_NAME_CREATER, userId);
                 }
             }
+
+            // 设置创建时间
+            if (ReflectUtils.containField("createdAt", parameter.getClass())) {
+                ReflectUtils.setFieldValue(parameter, "createdAt", System.currentTimeMillis());
+            }
+
+            // 设置更新时间
+            if (ReflectUtils.containField("updatedAt", parameter.getClass())) {
+                ReflectUtils.setFieldValue(parameter, "updatedAt", System.currentTimeMillis());
+            }
         }
     }
 
-    private void updateExe(Object parameter){
+    private void updateExe(Object parameter) {
         //1.判断是否有updater字段
-        if(ReflectUtils.containField(DATA_FIELD_NAME_UPDATER, parameter.getClass())){
+        if (ReflectUtils.containField(DATA_FIELD_NAME_UPDATER, parameter.getClass())) {
             Long userId = UserContext.getUser();
             //2.如果有userId也存在并设置updater
-            if(userId != null){
+            if (userId != null) {
                 //3.当前用户设置到更新人字段
                 ReflectUtils.setFieldValue(parameter, DATA_FIELD_NAME_UPDATER, userId);
             }
+        }
+
+        // 设置更新时间
+        if (ReflectUtils.containField("updatedAt", parameter.getClass())) {
+            ReflectUtils.setFieldValue(parameter, "updatedAt", System.currentTimeMillis());
         }
     }
 }

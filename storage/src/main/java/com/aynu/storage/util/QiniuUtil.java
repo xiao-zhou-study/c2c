@@ -2,7 +2,6 @@ package com.aynu.storage.util;
 
 import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.storage.config.QiniuProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qiniu.common.QiniuException;
 import com.qiniu.http.Response;
 import com.qiniu.storage.BucketManager;
@@ -15,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
-import java.util.Map;
 
 /**
  * 七牛云工具类
@@ -35,9 +33,8 @@ public class QiniuUtil {
      *
      * @param inputStream 文件输入流
      * @param fileName    文件名（包含扩展名）
-     * @return 文件访问URL
      */
-    public String uploadFile(InputStream inputStream, String fileName) {
+    public void uploadFile(InputStream inputStream, String fileName) {
         // 构建上传凭证
         Auth auth = Auth.create(qiniuProperties.getAk(), qiniuProperties.getSk());
         String upToken = auth.uploadToken(qiniuProperties.getBucket());
@@ -48,17 +45,7 @@ public class QiniuUtil {
             UploadManager uploadManager = new UploadManager(cfg);
 
             // 上传文件
-            Response response = uploadManager.put(inputStream, fileName, upToken, null, null);
-
-            // 使用Jackson解析响应
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> responseMap = objectMapper.readValue(response.bodyString(), Map.class);
-            String key = (String) responseMap.get("key");
-
-            // 返回文件访问URL
-            String fileUrl = qiniuProperties.getDomain() + "/" + key;
-            log.info("文件上传成功: {}", fileUrl);
-            return fileUrl;
+            uploadManager.put(inputStream, fileName, upToken, null, null);
 
         } catch (QiniuException ex) {
             Response r = ex.response;

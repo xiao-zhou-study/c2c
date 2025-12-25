@@ -3,6 +3,7 @@ package com.aynu.auth.controller;
 
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.auth.common.constants.JwtConstants;
+import com.aynu.auth.domain.dto.LoginAdminFormDTO;
 import com.aynu.auth.service.IAuthTokensService;
 import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.common.utils.WebUtils;
@@ -30,8 +31,8 @@ public class AuthTokensController {
 
     @ApiOperation("管理端登录并获取token")
     @PostMapping(value = "/admin/login")
-    public String adminLoginByPw(@RequestBody LoginFormDTO loginFormDTO) {
-        return authTokensService.login(loginFormDTO, true);
+    public String adminLoginByPw(@RequestBody LoginAdminFormDTO dto) {
+        return authTokensService.loginAdmin(dto);
     }
 
     @ApiOperation("退出登录")

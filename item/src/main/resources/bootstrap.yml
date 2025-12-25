@@ -22,6 +22,7 @@ spring:
             refresh: false
           - data-id: shared-feign.yaml # 共享feign配置
             refresh: false
+          - data-id: shared-qiniu.yaml # 共享七牛云配置
         namespace: 66f565f6-6b64-408c-a3c3-8f30ce3b6711
 xy:
   swagger:

@@ -1,7 +1,13 @@
 package com.aynu.common.constants;
 
 public interface MqConstants {
-    interface Exchange{
+    interface Exchange {
+
+        /**
+         * 用户有关的交换机
+         */
+        String USER_EXCHANGE = "user.topic";
+
         /*课程有关的交换机*/
         String COURSE_EXCHANGE = "course.topic";
 
@@ -22,13 +28,20 @@ public interface MqConstants {
         /*交易服务延迟任务交换机*/
         String TRADE_DELAY_EXCHANGE = "trade.delay.topic";
 
-         /*点赞记录有关的交换机*/
+        /*点赞记录有关的交换机*/
         String LIKE_RECORD_EXCHANGE = "like.record.topic";
     }
+
     interface Queue {
         String ERROR_QUEUE_TEMPLATE = "error.{}.queue";
     }
-    interface Key{
+
+    interface Key {
+        /**
+         * 用户有关的RoutingKey
+         */
+        String USER_NEW_KEY = "user.new";
+
         /*课程有关的 RoutingKey*/
         String COURSE_NEW_KEY = "course.new";
         String COURSE_UP_KEY = "course.up";

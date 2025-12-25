@@ -20,6 +20,8 @@ spring:
             refresh: false
           - data-id: shared-logs.yaml # 共享日志配置
             refresh: false
+          - dataId: shared-mq.yaml # 共享mq配置
+          - dataId: shared-xxljob.yaml # 共享mq配置
         namespace: 66f565f6-6b64-408c-a3c3-8f30ce3b6711
 
 encrypt:

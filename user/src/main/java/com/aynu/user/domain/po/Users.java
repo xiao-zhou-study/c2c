@@ -2,9 +2,7 @@ package com.aynu.user.domain.po;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.aynu.api.dto.user.UserDTO;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -40,7 +38,7 @@ public class Users implements Serializable {
     private Long id;
 
     /**
-     * 用户名（登录用），唯一
+     * 用户昵称
      */
     private String username;
 
@@ -50,7 +48,7 @@ public class Users implements Serializable {
     private String email;
 
     /**
-     * 手机号码，可选
+     * 手机号码，唯一，用户登录/找回密码
      */
     private String phone;
 
@@ -60,17 +58,12 @@ public class Users implements Serializable {
     private String passwordHash;
 
     /**
-     * 用户昵称，显示用
-     */
-    private String nickname;
-
-    /**
      * 头像图片URL地址
      */
     private String avatarUrl;
 
     /**
-     * 学号，可选
+     * 学号，唯一，用于登录/找回密码
      */
     private String studentId;
 
@@ -112,15 +105,19 @@ public class Users implements Serializable {
     /**
      * 记录创建时间戳（毫秒级）
      */
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Long createdAt;
 
     /**
      * 记录更新时间戳（毫秒级）
      */
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Long updatedAt;
 
     public UserDTO toDTO() {
-        return BeanUtil.toBean(this, UserDTO.class);
+        UserDTO userDTO = BeanUtil.toBean(this, UserDTO.class);
+        userDTO.setPassword(this.getPasswordHash());
+        return userDTO;
 
     }
 

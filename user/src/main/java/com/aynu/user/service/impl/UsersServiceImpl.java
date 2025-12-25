@@ -3,21 +3,24 @@ package com.aynu.user.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.aynu.api.client.auth.AuthClient;
 import com.aynu.api.client.storage.FileClient;
+import com.aynu.api.dto.auth.RoleDTO;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
+import com.aynu.common.autoconfigure.mq.RabbitMqHelper;
 import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.common.exceptions.BadRequestException;
+import com.aynu.common.utils.AvatarUtils;
 import com.aynu.common.utils.UserContext;
 import com.aynu.user.domain.dto.PasswordChangeDTO;
-import com.aynu.user.domain.dto.UserProfileDTO;
+import com.aynu.user.domain.dto.UserRegisterDTO;
 import com.aynu.user.domain.dto.VerifyDTO;
 import com.aynu.user.domain.po.UserProfiles;
 import com.aynu.user.domain.po.UserStats;
 import com.aynu.user.domain.po.Users;
-import com.aynu.user.domain.vo.UserProfileVO;
 import com.aynu.user.domain.vo.UserStatsVO;
 import com.aynu.user.mapper.UsersMapper;
 import com.aynu.user.service.IUserProfilesService;
@@ -34,8 +37,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import static com.aynu.common.utils.AvatarUtils.getRandomAvatar;
+import static com.aynu.common.constants.Constant.ROLE_GENERAL;
+import static com.aynu.common.constants.MqConstants.Exchange.USER_EXCHANGE;
+import static com.aynu.common.constants.MqConstants.Key.USER_NEW_KEY;
 
 /**
  * <p>
@@ -53,57 +62,58 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     private final IUserProfilesService userProfilesService;
     private final IUserStatsService userStatsService;
     private final FileClient fileClient;
+    private final AuthClient authClient;
     private final PasswordEncoder passwordEncoder;
+    private final RabbitMqHelper rabbitMqHelper;
 
     @Override
-    public void saveUser(UserDTO userDTO) {
-        String studentId = userDTO.getStudentId();
+    public void saveUser(UserRegisterDTO dto) {
+        String studentId = dto.getStudentId();
         Users user = lambdaQuery().eq(Users::getStudentId, studentId).one();
         if (user != null) {
             throw new BadRequestException("用户已存在");
         }
 
-        String password = userDTO.getPassword();
+        String password = dto.getPassword();
         password = passwordEncoder.encode(password);
         Users users = new Users().setStudentId(studentId)
-                .setUsername(userDTO.getUsername())
-                .setDepartment(userDTO.getDepartment())
-                .setEmail(userDTO.getEmail())
+                .setUsername(dto.getUsername())
+                .setSchool(dto.getSchool())
+                .setDepartment(dto.getDepartment())
+                .setGrade(dto.getGrade())
+                .setEmail(dto.getEmail())
                 .setPasswordHash(password);
         setDefaultUserInfo(users);
 
         save(users);
+        UserDTO userDTO = BeanUtil.toBean(users, UserDTO.class);
+        userDTO.setRole(ROLE_GENERAL);
+        rabbitMqHelper.send(USER_EXCHANGE, USER_NEW_KEY, userDTO);
     }
 
     @Override
     public LoginUserDTO queryUserDetail(LoginFormDTO loginDTO, boolean isStaff) {
-        String username = loginDTO.getUsername();
         String email = loginDTO.getEmail();
         String studentId = loginDTO.getStudentId();
         String password = loginDTO.getPassword();
+        String phone = loginDTO.getPhone();
 
         if (StrUtil.isBlank(password)) {
             throw new BadRequestException("密码不能为空");
         }
 
         Users user;
-        if (isStaff) {
-            // 管理员登录，只支持用户名+密码
-            if (StrUtil.isBlank(username)) {
-                throw new BadRequestException("用户名不能为空");
-            }
-            user = lambdaQuery().eq(Users::getUsername, username).one();
+        if (StrUtil.isNotBlank(email)) {
+            // 使用邮箱登录
+            user = lambdaQuery().eq(Users::getEmail, email).one();
+        } else if (StrUtil.isNotBlank(studentId)) {
+            // 使用学号登录
+            user = lambdaQuery().eq(Users::getStudentId, studentId).one();
+        } else if (StrUtil.isNotBlank(phone)) {
+            // 使用手机号登录
+            user = lambdaQuery().eq(Users::getPhone, phone).one();
         } else {
-            // 普通用户登录，支持邮箱或学号
-            if (StrUtil.isNotBlank(email)) {
-                // 使用邮箱登录
-                user = lambdaQuery().eq(Users::getEmail, email).one();
-            } else if (StrUtil.isNotBlank(studentId)) {
-                // 使用学号登录
-                user = lambdaQuery().eq(Users::getStudentId, studentId).one();
-            } else {
-                throw new BadRequestException("邮箱或学号不能为空");
-            }
+            throw new BadRequestException("邮箱、学号或手机号不能为空");
         }
 
         if (user == null) {
@@ -115,20 +125,61 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
             throw new BadRequestException("密码错误");
         }
 
+        // 获取用户角色Id
+        RoleDTO roleDTO = authClient.queryRoleByUserId(user.getId());
+
         // 构造返回的LoginUserDTO
         LoginUserDTO loginUserDTO = new LoginUserDTO();
         loginUserDTO.setUserId(user.getId());
         // 根据是否是管理员设置角色ID
-        loginUserDTO.setRoleId(isStaff ? 2L : 1L); // 管理员角色ID为2，普通用户为1
+        loginUserDTO.setRoleId(roleDTO.getId());
         loginUserDTO.setRememberMe(loginDTO.getRememberMe());
 
         return loginUserDTO;
     }
 
+
     @Override
     public List<UserDTO> queryUserByIds(Iterable<Long> ids) {
-        List<Users> list = lambdaQuery().in(Users::getId, ids).eq(Users::getStatus, 1).list();
-        return list.stream().map(Users::toDTO).toList();
+        List<Users> users = lambdaQuery().in(Users::getId, ids).eq(Users::getStatus, 1).list();
+        List<UserProfiles> userProfiles = userProfilesService.lambdaQuery().in(UserProfiles::getUserId, ids).list();
+
+        if (userProfiles == null) {
+            return users.stream().map(Users::toDTO).toList();
+        }
+        Map<Long, UserProfiles> userProfilesMap = userProfiles.stream()
+                .collect(Collectors.toMap(UserProfiles::getUserId, Function.identity()));
+        return users.stream().map(user -> {
+            UserProfiles userProfiles1 = userProfilesMap.getOrDefault(user.getId(), new UserProfiles());
+            return convertToUserDTO(user, userProfiles1);
+        }).collect(Collectors.toList());
+    }
+
+    private UserDTO convertToUserDTO(Users user, UserProfiles userProfiles1) {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(user.getId());
+        userDTO.setUsername(user.getUsername());
+        userDTO.setEmail(user.getEmail());
+        userDTO.setPhone(user.getPhone());
+        userDTO.setPassword(user.getPasswordHash());
+        userDTO.setAvatarUrl(user.getAvatarUrl());
+        userDTO.setStudentId(user.getStudentId());
+        userDTO.setSchool(user.getSchool());
+        userDTO.setDepartment(user.getDepartment());
+        userDTO.setGrade(user.getGrade());
+        userDTO.setCreditScore(user.getCreditScore());
+        userDTO.setIsVerified(user.getIsVerified());
+        userDTO.setStatus(user.getStatus());
+        userDTO.setLastLoginAt(user.getLastLoginAt());
+        userDTO.setRealName(userProfiles1.getRealName());
+        userDTO.setGender(userProfiles1.getGender());
+        userDTO.setBirthday(userProfiles1.getBirthday());
+        userDTO.setBio(userProfiles1.getBio());
+        userDTO.setQq(userProfiles1.getQq());
+        userDTO.setWechat(userProfiles1.getWechat());
+        userDTO.setCreatedAt(user.getCreatedAt());
+        userDTO.setUpdatedAt(user.getUpdatedAt());
+        return userDTO;
     }
 
     @Override
@@ -147,20 +198,29 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (user == null) {
             throw new BadRequestException("用户不存在");
         }
-        return user.toDTO();
+        UserProfiles userProfiles = userProfilesService.lambdaQuery().eq(UserProfiles::getUserId, userId).one();
+        if (userProfiles == null) {
+            userProfiles = new UserProfiles();
+        }
+        return convertToUserDTO(user, userProfiles);
     }
 
     @Override
+    @Transactional
     public UserDTO updateUser(Long userId, UserDTO userDTO) {
         Users user = getById(userId);
+        UserProfiles userProfiles = userProfilesService.lambdaQuery().eq(UserProfiles::getUserId, userId).one();
+        if (userProfiles == null) {
+            userProfiles = new UserProfiles();
+        }
         if (user == null) {
             throw new BadRequestException("用户不存在");
         }
 
-        // 只更新允许修改的字段
-        if (StrUtil.isNotBlank(userDTO.getNickname())) {
-            user.setNickname(userDTO.getNickname());
+        if (StrUtil.isNotBlank(userDTO.getUsername())) {
+            user.setUsername(userDTO.getUsername());
         }
+
         if (StrUtil.isNotBlank(userDTO.getPhone())) {
             user.setPhone(userDTO.getPhone());
         }
@@ -170,70 +230,38 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (StrUtil.isNotBlank(userDTO.getSchool())) {
             user.setSchool(userDTO.getSchool());
         }
+
+        if (StrUtil.isNotBlank(userDTO.getDepartment())) {
+            user.setDepartment(userDTO.getDepartment());
+        }
+
         if (StrUtil.isNotBlank(userDTO.getGrade())) {
             user.setGrade(userDTO.getGrade());
         }
 
-        user.setUpdatedAt(System.currentTimeMillis());
+        if (userDTO.getGender() != null) {
+            userProfiles.setGender(userDTO.getGender());
+        }
+
+        if (userDTO.getBirthday() != null) {
+            userProfiles.setBirthday(userDTO.getBirthday());
+        }
+
+        if (StrUtil.isNotBlank(userDTO.getBio())) {
+            userProfiles.setBio(userDTO.getBio());
+        }
+
+        if (StrUtil.isNotBlank(userDTO.getQq())) {
+            userProfiles.setQq(userDTO.getQq());
+        }
+
+        if (StrUtil.isNotBlank(userDTO.getWechat())) {
+            userProfiles.setWechat(userDTO.getWechat());
+        }
+
         updateById(user);
-        return user.toDTO();
-    }
-
-    @Override
-    public UserProfileVO getUserProfile(Long userId) {
-        UserProfiles profile = userProfilesService.lambdaQuery().eq(UserProfiles::getUserId, userId).one();
-        if (profile == null) {
-            // 如果不存在资料，返回空的资料对象
-            return new UserProfileVO();
-        }
-        return BeanUtil.toBean(profile, UserProfileVO.class);
-    }
-
-    @Override
-    @Transactional
-    public UserProfileVO updateUserProfile(Long userId, UserProfileDTO profileDTO) {
-        UserProfiles profile = userProfilesService.lambdaQuery().eq(UserProfiles::getUserId, userId).one();
-
-        long now = System.currentTimeMillis();
-
-        if (profile == null) {
-            // 创建新资料
-            profile = BeanUtil.toBean(profileDTO, UserProfiles.class);
-            profile.setUserId(userId);
-            profile.setCreatedAt(now);
-            profile.setUpdatedAt(now);
-            userProfilesService.save(profile);
-        } else {
-            // 更新现有资料
-            if (profileDTO.getRealName() != null) {
-                profile.setRealName(profileDTO.getRealName());
-            }
-            if (profileDTO.getGender() != null) {
-                profile.setGender(profileDTO.getGender());
-            }
-            if (profileDTO.getBirthday() != null) {
-                profile.setBirthday(profileDTO.getBirthday());
-            }
-            if (profileDTO.getBio() != null) {
-                profile.setBio(profileDTO.getBio());
-            }
-            if (profileDTO.getCampus() != null) {
-                profile.setCampus(profileDTO.getCampus());
-            }
-            if (profileDTO.getDormitory() != null) {
-                profile.setDormitory(profileDTO.getDormitory());
-            }
-            if (profileDTO.getQq() != null) {
-                profile.setQq(profileDTO.getQq());
-            }
-            if (profileDTO.getWechat() != null) {
-                profile.setWechat(profileDTO.getWechat());
-            }
-            profile.setUpdatedAt(now);
-            userProfilesService.updateById(profile);
-        }
-
-        return BeanUtil.toBean(profile, UserProfileVO.class);
+        userProfilesService.saveOrUpdate(userProfiles);
+        return convertToUserDTO(user, userProfiles);
     }
 
     @Override
@@ -332,16 +360,14 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     }
 
     @Override
-    public PageDTO<Users> queryUserPage(PageQuery query, String keyword, Integer status) {
+    public PageDTO<UserDTO> queryUserPage(PageQuery query, String keyword, Integer status) {
         LambdaQueryChainWrapper<Users> wrapper = lambdaQuery();
         if (StrUtil.isNotBlank(keyword)) {
-            wrapper.and(w -> {
-                w.like(Users::getUsername, keyword)
-                        .or()
-                        .like(Users::getEmail, keyword)
-                        .or()
-                        .like(Users::getPhone, keyword);
-            });
+            wrapper.and(w -> w.like(Users::getUsername, keyword)
+                    .or()
+                    .like(Users::getEmail, keyword)
+                    .or()
+                    .like(Users::getPhone, keyword));
         }
 
         if (status != null) {
@@ -353,16 +379,28 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (CollUtil.isEmpty(records)) {
             return PageDTO.empty(page);
         }
-        return PageDTO.of(page);
+        Set<Long> userIds = records.stream().map(Users::getId).collect(Collectors.toSet());
+        List<UserProfiles> userProfiles = userProfilesService.lambdaQuery().in(UserProfiles::getUserId, userIds).list();
+
+        List<UserDTO> list;
+        if (userProfiles == null) {
+            list = records.stream().map(Users::toDTO).toList();
+            return PageDTO.of(page, list);
+        }
+        Map<Long, UserProfiles> userProfilesMap = userProfiles.stream()
+                .collect(Collectors.toMap(UserProfiles::getUserId, Function.identity()));
+        list = records.stream().map(user -> {
+            UserProfiles userProfiles1 = userProfilesMap.getOrDefault(user.getId(), new UserProfiles());
+            return convertToUserDTO(user, userProfiles1);
+        }).collect(Collectors.toList());
+        return PageDTO.of(page, list);
     }
 
     private void setDefaultUserInfo(Users users) {
         users.setCreditScore(100);
-        users.setAvatarUrl(getRandomAvatar());
+        users.setAvatarUrl(AvatarUtils.getRandomAvatar());
         users.setIsVerified(false);
         users.setStatus(1);
-        users.setCreatedAt(System.currentTimeMillis());
-        users.setUpdatedAt(System.currentTimeMillis());
     }
 
     private Long getCurrentUserId() {

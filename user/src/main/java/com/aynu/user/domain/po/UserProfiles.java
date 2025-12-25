@@ -1,15 +1,13 @@
 package com.aynu.user.domain.po;
 
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.IdType;
-
-import java.io.Serial;
-import java.time.LocalDate;
-import com.baomidou.mybatisplus.annotation.TableId;
-import java.io.Serializable;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.time.LocalDate;
 
 /**
  * <p>
@@ -60,16 +58,6 @@ public class UserProfiles implements Serializable {
     private String bio;
 
     /**
-     * 所属校区
-     */
-    private String campus;
-
-    /**
-     * 宿舍号
-     */
-    private String dormitory;
-
-    /**
      * QQ号码
      */
     private String qq;
@@ -82,11 +70,13 @@ public class UserProfiles implements Serializable {
     /**
      * 记录创建时间戳（毫秒级）
      */
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Long createdAt;
 
     /**
      * 记录更新时间戳（毫秒级）
      */
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Long updatedAt;
 
 

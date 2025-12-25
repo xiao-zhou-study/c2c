@@ -1,5 +1,6 @@
 package com.aynu.auth.service;
 
+import com.aynu.api.dto.auth.RoleDTO;
 import com.aynu.auth.domain.po.Roles;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -14,4 +15,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface IRolesService extends IService<Roles> {
 
     void deleteRole(Long id);
+
+    RoleDTO queryRoleByUserId(Long userId);
 }

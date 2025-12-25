@@ -13,13 +13,13 @@ public class RoleCache {
     private final Cache<Long, RoleDTO> roleCaches;
     private final AuthClient authClient;
 
-    public String getRoleName(Long roleId) {
-        RoleDTO roleDTO = roleCaches.get(roleId, authClient::queryRoleById);
-        if (roleDTO == null) {
-            return null;
-        }
-        return roleDTO.getName();
-    }
+//    public String getRoleName(Long roleId) {
+//        RoleDTO roleDTO = roleCaches.get(roleId, authClient::queryRoleById);
+//        if (roleDTO == null) {
+//            return null;
+//        }
+//        return roleDTO.getName();
+//    }
 
     public String exchangeRoleName(UserDTO u) {
         if (u == null) {
@@ -30,7 +30,7 @@ public class RoleCache {
             return u.getUsername();
         } else {
             // 管理员需要拼接角色名称
-            return getRoleName(u.getRoleId()) + "-" + u.getUsername();
+            return u.getRole() + "-" + u.getUsername();
         }
     }
 }

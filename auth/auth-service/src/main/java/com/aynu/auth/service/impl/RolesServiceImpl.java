@@ -1,5 +1,6 @@
 package com.aynu.auth.service.impl;
 
+import com.aynu.api.dto.auth.RoleDTO;
 import com.aynu.auth.domain.po.Roles;
 import com.aynu.auth.domain.po.UserRoles;
 import com.aynu.auth.mapper.RolesMapper;
@@ -44,5 +45,15 @@ public class RolesServiceImpl extends ServiceImpl<RolesMapper, Roles> implements
         if (!removed) {
             throw new BadRequestException("角色删除失败");
         }
+    }
+
+    @Override
+    public RoleDTO queryRoleByUserId(Long userId) {
+        UserRoles userRoles = userRolesService.lambdaQuery().eq(UserRoles::getUserId, userId).one();
+        if (userRoles != null) {
+            Roles role = getById(userRoles.getRoleId());
+            return role.toDTO();
+        }
+        return null;
     }
 }

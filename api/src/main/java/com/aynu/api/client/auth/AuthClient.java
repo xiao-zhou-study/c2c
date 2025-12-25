@@ -15,4 +15,7 @@ public interface AuthClient {
 
     @GetMapping("/roles/list")
     List<RoleDTO> listAllRoles();
+
+    @GetMapping("/roles/user/{userId}")
+    RoleDTO queryRoleByUserId(@PathVariable("userId") Long userId);
 }

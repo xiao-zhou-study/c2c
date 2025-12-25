@@ -1,16 +1,13 @@
 package com.aynu.user.controller;
 
-import com.aynu.api.client.storage.FileClient;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.user.domain.dto.PasswordChangeDTO;
-import com.aynu.user.domain.dto.UserProfileDTO;
+import com.aynu.user.domain.dto.UserRegisterDTO;
 import com.aynu.user.domain.dto.VerifyDTO;
-import com.aynu.user.domain.po.Users;
-import com.aynu.user.domain.vo.UserProfileVO;
 import com.aynu.user.domain.vo.UserStatsVO;
 import com.aynu.user.service.IUsersService;
 import io.swagger.annotations.Api;
@@ -31,12 +28,11 @@ import java.util.Map;
 public class UserController {
 
     private final IUsersService usersService;
-    private final FileClient fileClient;
 
     @ApiOperation("用户注册")
     @PostMapping("/register")
-    public void register(@RequestBody UserDTO userDTO) {
-        usersService.saveUser(userDTO);
+    public void register(@RequestBody UserRegisterDTO dto) {
+        usersService.saveUser(dto);
     }
 
     @ApiOperation("查询用户详情")
@@ -53,16 +49,10 @@ public class UserController {
 
     @ApiOperation("分页查询用户列表")
     @GetMapping("/page")
-    public PageDTO<Users> queryUserPage(PageQuery query,
-                                        @RequestParam(required = false) String keyword,
-                                        @RequestParam(required = false) Integer status) {
+    public PageDTO<UserDTO> queryUserPage(PageQuery query,
+                                          @RequestParam(required = false) String keyword,
+                                          @RequestParam(required = false) Integer status) {
         return usersService.queryUserPage(query, keyword, status);
-    }
-
-    @ApiOperation("新增管理人员")
-    @PostMapping("/addStaff")
-    public void addStaff(@RequestBody UserDTO userDTO) {
-        usersService.addStaff(userDTO);
     }
 
     @ApiOperation("根据用户ID获取用户信息")
@@ -75,19 +65,6 @@ public class UserController {
     @PutMapping("/{userId}")
     public UserDTO updateUser(@PathVariable("userId") Long userId, @RequestBody UserDTO userDTO) {
         return usersService.updateUser(userId, userDTO);
-    }
-
-    @ApiOperation("获取用户详细资料")
-    @GetMapping("/{userId}/profile")
-    public UserProfileVO getUserProfile(@PathVariable("userId") Long userId) {
-        return usersService.getUserProfile(userId);
-    }
-
-    @ApiOperation("更新用户详细资料")
-    @PutMapping("/{userId}/profile")
-    public UserProfileVO updateUserProfile(@PathVariable("userId") Long userId,
-                                           @RequestBody UserProfileDTO profileDTO) {
-        return usersService.updateUserProfile(userId, profileDTO);
     }
 
     @ApiOperation("获取用户统计信息")

@@ -1,6 +1,7 @@
 package com.aynu.common.constants;
 
 public interface Constant {
+    String ROLE_GENERAL = "general";
     String REQUEST_ID_HEADER = "requestId";
     String REQUEST_FROM_HEADER = "x-request-from";
 
@@ -34,9 +35,6 @@ public interface Constant {
     boolean DATA_NOT_DELETE = false;
     // 响应结果是否被R标记过
     String BODY_PROCESSED_MARK_HEADER = "IS_BODY_PROCESSED";
-
-
-
 
 
 }

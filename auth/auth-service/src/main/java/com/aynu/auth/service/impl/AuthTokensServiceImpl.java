@@ -3,6 +3,7 @@ package com.aynu.auth.service.impl;
 import com.aynu.api.client.user.UserClient;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.auth.common.constants.JwtConstants;
+import com.aynu.auth.domain.dto.LoginAdminFormDTO;
 import com.aynu.auth.domain.po.AuthTokens;
 import com.aynu.auth.mapper.AuthTokensMapper;
 import com.aynu.auth.service.IAuthTokensService;
@@ -47,6 +48,26 @@ public class AuthTokensServiceImpl extends ServiceImpl<AuthTokensMapper, AuthTok
         return generateToken(detail);
     }
 
+    @Override
+    public String loginAdmin(LoginAdminFormDTO dto) {
+        // 1.查询并校验用户信息
+        if (!"admin".equals(dto.getUsername())) {
+            throw new BadRequestException("用户名错误");
+        }
+        if (!"passwd".equals(dto.getPassword())) {
+            throw new BadRequestException("密码错误");
+        }
+
+        LoginUserDTO detail = new LoginUserDTO();
+        detail.setUserId(1L);
+        detail.setRoleId(1L);
+        // 2.基于JWT生成登录token
+        // 2.1.设置记住我标记
+        detail.setRememberMe(dto.getRememberMe());
+
+        return generateToken(detail);
+    }
+
     private String generateToken(LoginUserDTO detail) {
         // 2.2.生成access-token
         String token = jwtTool.createToken(detail);
@@ -78,4 +99,6 @@ public class AuthTokensServiceImpl extends ServiceImpl<AuthTokensMapper, AuthTok
         // 2.生成新的access-token、refresh-token
         return generateToken(userDTO);
     }
+
+
 }

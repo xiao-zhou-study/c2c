@@ -74,4 +74,10 @@ public class RoleController {
     public void deleteRole(@ApiParam(value = "角色id", example = "1") @PathVariable("id") Long id) {
         roleService.deleteRole(id);
     }
+
+    @ApiOperation("根据userId查询角色信息")
+    @GetMapping("/user/{userId}")
+    public RoleDTO queryRoleByUserId(@PathVariable("userId") Long userId) {
+        return roleService.queryRoleByUserId(userId);
+    }
 }

@@ -6,11 +6,9 @@ import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.user.domain.dto.PasswordChangeDTO;
-import com.aynu.user.domain.dto.UserProfileDTO;
+import com.aynu.user.domain.dto.UserRegisterDTO;
 import com.aynu.user.domain.dto.VerifyDTO;
 import com.aynu.user.domain.po.Users;
-import com.aynu.user.domain.query.UserPageQuery;
-import com.aynu.user.domain.vo.UserProfileVO;
 import com.aynu.user.domain.vo.UserStatsVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,7 +25,7 @@ import java.util.List;
  */
 public interface IUsersService extends IService<Users> {
 
-    void saveUser(UserDTO userDTO);
+    void saveUser(UserRegisterDTO dto);
 
     LoginUserDTO queryUserDetail(LoginFormDTO loginDTO, boolean isStaff);
 
@@ -39,10 +37,6 @@ public interface IUsersService extends IService<Users> {
 
     UserDTO updateUser(Long userId, UserDTO userDTO);
 
-    UserProfileVO getUserProfile(Long userId);
-
-    UserProfileVO updateUserProfile(Long userId, UserProfileDTO profileDTO);
-
     UserStatsVO getUserStats(Long userId);
 
     void changePassword(PasswordChangeDTO passwordChangeDTO);
@@ -51,5 +45,5 @@ public interface IUsersService extends IService<Users> {
 
     String uploadAvatar(MultipartFile file);
 
-    PageDTO<Users> queryUserPage(PageQuery query, String keyword, Integer status);
+    PageDTO<UserDTO> queryUserPage(PageQuery query, String keyword, Integer status);
 }

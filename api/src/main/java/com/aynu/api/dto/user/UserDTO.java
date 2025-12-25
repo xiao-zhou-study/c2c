@@ -1,24 +1,29 @@
 package com.aynu.api.dto.user;
 
 import com.aynu.common.constants.RegexConstants;
-import com.aynu.common.validate.annotations.EnumValid;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.Email;
-import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.io.Serializable;
 import java.time.LocalDate;
 
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @ApiModel(description = "用户详情")
-public class UserDTO {
+public class UserDTO implements Serializable {
     @ApiModelProperty(value = "主键ID，使用雪花算法生成", example = "1234567890123456789")
     private Long id;
 
-    @ApiModelProperty(value = "用户名（登录用），唯一", example = "zhangsan")
+    @ApiModelProperty(value = "用户昵称", example = "zhangsan")
     @Size(max = 50, message = "用户名长度不能超过50个字符")
     private String username;
 
@@ -27,7 +32,7 @@ public class UserDTO {
     @Size(max = 100, message = "邮箱长度不能超过100个字符")
     private String email;
 
-    @ApiModelProperty(value = "手机号码，可选", example = "13890017009")
+    @ApiModelProperty(value = "手机号码，唯一，用户登录/找回密码", example = "13890017009")
     @Pattern(regexp = RegexConstants.PHONE_PATTERN, message = "手机号格式错误")
     private String phone;
 
@@ -35,15 +40,11 @@ public class UserDTO {
     @Size(min = 6, max = 20, message = "密码长度必须在6-20个字符之间")
     private String password;
 
-    @ApiModelProperty(value = "用户昵称，显示用", example = "张三")
-    @Size(max = 100, message = "昵称长度不能超过100个字符")
-    private String nickname;
-
     @ApiModelProperty(value = "头像图片URL地址", example = "default-user-icon.jpg")
     @Size(max = 500, message = "头像URL长度不能超过500个字符")
     private String avatarUrl;
 
-    @ApiModelProperty(value = "学号，可选", example = "2023001001")
+    @ApiModelProperty(value = "学号，唯一，用于登录/找回密码", example = "2023001001")
     @Size(max = 50, message = "学号长度不能超过50个字符")
     private String studentId;
 
@@ -59,6 +60,18 @@ public class UserDTO {
     @Size(max = 20, message = "年级信息长度不能超过20个字符")
     private String grade;
 
+    @ApiModelProperty(value = "信用分数，初始100分", example = "100")
+    private Integer creditScore;
+
+    @ApiModelProperty(value = "是否实名认证：FALSE-未认证，TRUE-已认证", example = "false")
+    private Boolean isVerified;
+
+    @ApiModelProperty(value = "账号状态：1-正常 2-禁用", example = "1")
+    private Integer status;
+
+    @ApiModelProperty(value = "最后登录时间戳（毫秒级）", example = "1678886400000")
+    private Long lastLoginAt;
+
     @ApiModelProperty(value = "真实姓名", example = "张三")
     @Size(max = 50, message = "真实姓名长度不能超过50个字符")
     private String realName;
@@ -73,14 +86,6 @@ public class UserDTO {
     @Size(max = 65535, message = "个人简介长度不能超过65535个字符")
     private String bio;
 
-    @ApiModelProperty(value = "所属校区", example = "安阳师范学院本部")
-    @Size(max = 100, message = "校区名称长度不能超过100个字符")
-    private String campus;
-
-    @ApiModelProperty(value = "宿舍号", example = "东区1号楼201室")
-    @Size(max = 100, message = "宿舍号长度不能超过100个字符")
-    private String dormitory;
-
     @ApiModelProperty(value = "QQ号码", example = "123456789")
     @Size(max = 20, message = "QQ号码长度不能超过20个字符")
     private String qq;
@@ -89,11 +94,15 @@ public class UserDTO {
     @Size(max = 50, message = "微信号长度不能超过50个字符")
     private String wechat;
 
-    @ApiModelProperty(value = "用户类型，1-普通学生,2-管理员", example = "1")
-    @EnumValid(enumeration = {1, 2}, message = "用户类型错误")
-    @NotNull
+    @ApiModelProperty(value = "角色名称", example = "5")
+    private String role;
+
+    @ApiModelProperty(value = "类型", example = "1")
     private Integer type;
 
-    @ApiModelProperty(value = "角色id，学生不用填", example = "5")
-    private Long roleId;
+    @ApiModelProperty(value = "创建时间", example = "1888487782")
+    private Long createdAt;
+
+    @ApiModelProperty(value = "更新时间", example = "1888487782")
+    private Long updatedAt;
 }

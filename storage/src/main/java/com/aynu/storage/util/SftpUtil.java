@@ -30,7 +30,7 @@ public class SftpUtil {
      * @param remotePath  远程目录路径（相对于basePath）
      * @param fileName    文件名
      */
-    public void uploadFile(InputStream inputStream, String remotePath, String fileName) {
+    public String uploadFile(InputStream inputStream, String remotePath, String fileName) {
         Session session = null;
         ChannelSftp channelSftp = null;
 
@@ -71,6 +71,7 @@ public class SftpUtil {
             channelSftp.put(inputStream, fileName);
 
             log.info("文件上传成功: {}/{}", fullRemotePath, fileName);
+            return uploadProperties.getUrlPrefix() + "/" + remotePath + "/" + fileName;
 
         } catch (JSchException | SftpException e) {
             log.error("SFTP上传文件失败", e);

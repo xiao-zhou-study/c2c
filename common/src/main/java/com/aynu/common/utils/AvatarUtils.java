@@ -9,6 +9,6 @@ public class AvatarUtils {
 
     // 获取随机默认头像
     public static String getRandomAvatar() {
-        return "https://api.multiavatar.com/" + RandomUtil.randomInt(1, 10) + ".png";
+        return "http://117.72.74.175/images/common/" + RandomUtil.randomInt(1, 10) + ".png";
     }
 }

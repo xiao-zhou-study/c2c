@@ -1,6 +1,7 @@
 package com.aynu.auth.service;
 
 import com.aynu.api.dto.user.LoginFormDTO;
+import com.aynu.auth.domain.dto.LoginAdminFormDTO;
 import com.aynu.auth.domain.po.AuthTokens;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -19,4 +20,6 @@ public interface IAuthTokensService extends IService<AuthTokens> {
     void logout();
 
     String refreshToken(String decode);
+
+    String loginAdmin(LoginAdminFormDTO dto);
 }

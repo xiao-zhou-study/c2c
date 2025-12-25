@@ -44,13 +44,6 @@ file:
       password: zhou0403..     # 登录密码
       timeout: 30000              # 连接超时时间(毫秒)
 
-# 七牛云
-qiniu:
-  ak: nUvwowlBUouxg-3OdzlbtGcXHatYp6-dSt-GC7Fp
-  sk: Y3NIsywcNdxZ0H1eLWURSuRIxqmE3BtBYR0an1z8
-  bucket: xywpgx
-  domain: http://t7pqx8v32.hb-bkt.clouddn.com
-
 xy:
   swagger:
     enable: true
