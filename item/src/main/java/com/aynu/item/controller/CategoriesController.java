@@ -38,7 +38,12 @@ public class CategoriesController {
     @ApiOperation("管理员获取所有物品分类")
     @GetMapping("/admin")
     public List<CategoriesVO> listAllAdmin() {
-        return categoriesService.list().stream().map(Categories::toVO).collect(Collectors.toList());
+        return categoriesService.lambdaQuery()
+                .orderByAsc(Categories::getSortOrder)
+                .list()
+                .stream()
+                .map(Categories::toVO)
+                .collect(Collectors.toList());
     }
 
     @ApiOperation("新增物品分类")

@@ -28,7 +28,9 @@ public class CategoriesServiceImpl extends ServiceImpl<CategoriesMapper, Categor
 
     @Override
     public List<CategoriesVO> listAll() {
-        List<Categories> list = lambdaQuery().eq(Categories::getIsActive, true).list();
+        List<Categories> list = lambdaQuery().eq(Categories::getIsActive, true)
+                .orderByAsc(Categories::getSortOrder)
+                .list();
         return list.stream().map(Categories::toVO).collect(Collectors.toList());
     }
 
