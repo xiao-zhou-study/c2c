@@ -29,20 +29,17 @@ xy:
     enable: true
     enableResponseWrap: true
     package-path: com.aynu.item.controller
-    title: 校园物品共享平台 - 用户中心接口文档
-    description: 该服务用户管理、用户信息管理
+    title: 校园物品共享平台 - 物品管理接口文档
+    description: 该服务用于物品管理、物品信息管理
     contact-name: 安阳师范学院
     version: v1.0
   auth:
     resource:
       enable: true
       excludeLoginPaths:
-        - /students/register
-        - /users/detail/{isStaff}
-        - /users/list
-        - GET:/users/{id}
-        - /users/{id}/type
-        - /users/ids
-        - /users/me
+        - GET:/categories
+        - GET:/items/{id}
+        - GET:/items/recommended
+        - GET:/items/hot
   jdbc:
     database: xy_item

@@ -32,7 +32,7 @@ xy:
     enableResponseWrap: true
     package-path: com.aynu.user.controller
     title: 校园物品共享平台 - 用户中心接口文档
-    description: 该服务用户管理、用户信息管理
+    description: 该服务用于用户管理、用户信息管理
     contact-name: 安阳师范学院
     version: v1.0
   auth:
