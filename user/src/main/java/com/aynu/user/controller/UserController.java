@@ -5,6 +5,7 @@ import com.aynu.api.dto.user.UserDTO;
 import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
+import com.aynu.common.utils.UserContext;
 import com.aynu.user.domain.dto.PasswordChangeDTO;
 import com.aynu.user.domain.dto.UserRegisterDTO;
 import com.aynu.user.domain.dto.VerifyDTO;
@@ -14,7 +15,6 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -54,9 +54,15 @@ public class UserController {
     }
 
     @ApiOperation("根据用户ID获取用户信息")
-    @GetMapping("/{userId}")
+    @GetMapping("/{userId:\\d+}")
     public UserDTO getUserById(@PathVariable("userId") Long userId) {
         return usersService.getUserById(userId);
+    }
+
+    @ApiOperation("获取用户个人信息")
+    @GetMapping("/me")
+    public UserDTO getUserInfo() {
+        return usersService.getUserById(UserContext.getUser());
     }
 
     @ApiOperation("更新用户信息")

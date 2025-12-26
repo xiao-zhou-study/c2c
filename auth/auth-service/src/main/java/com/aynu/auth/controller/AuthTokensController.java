@@ -49,14 +49,17 @@ public class AuthTokensController {
         if (studentToken == null && adminToken == null) {
             throw new BadRequestException("登录超时");
         }
-        String host = WebUtils.getHeader("origin");
-        if (host == null) {
+        String clientType = WebUtils.getHeader("X-Client-Type");
+        if (clientType == null) {
             throw new BadRequestException("登录超时");
         }
-        String token = host.contains("admin") ? adminToken : studentToken;
+        // 通过自定义请求头区分管理端和客户端：admin是管理端，client是客户端
+        String token = "admin".equals(clientType) ? adminToken : studentToken;
         if (token == null) {
             throw new BadRequestException("登录超时");
         }
         return authTokensService.refreshToken(WebUtils.cookieBuilder().decode(token));
     }
 }
+
+
