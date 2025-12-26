@@ -4,6 +4,7 @@ import com.aynu.common.utils.UserContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -11,9 +12,9 @@ import javax.servlet.http.HttpServletResponse;
 public class LoginAuthInterceptor implements HandlerInterceptor {
 
     @Override
-    public boolean preHandle(HttpServletRequest request,
-                             HttpServletResponse response,
-                             Object handler) throws Exception {
+    public boolean preHandle(@Nonnull HttpServletRequest request,
+                             @Nonnull HttpServletResponse response,
+                             @Nonnull Object handler) throws Exception {
         // 1.尝试获取用户信息
         Long userId = UserContext.getUser();
         // 2.判断是否登录
