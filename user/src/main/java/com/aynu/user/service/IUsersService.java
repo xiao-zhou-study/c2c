@@ -29,7 +29,7 @@ public interface IUsersService extends IService<Users> {
 
     LoginUserDTO queryUserDetail(LoginFormDTO loginDTO, boolean isStaff);
 
-    List<UserDTO> queryUserByIds(Iterable<Long> ids);
+    List<UserDTO> queryUserByIds(List<Long> ids);
 
     void addStaff(UserDTO userDTO);
 

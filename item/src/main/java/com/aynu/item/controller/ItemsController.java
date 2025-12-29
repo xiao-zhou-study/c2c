@@ -1,10 +1,10 @@
 package com.aynu.item.controller;
 
-import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
-import com.aynu.item.domain.dto.ItemStatusUpdateDTO;
+import com.aynu.common.utils.UserContext;
 import com.aynu.item.domain.dto.ItemsDTO;
+import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.item.service.IItemsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -55,12 +55,6 @@ public class ItemsController {
         return itemsService.getByIdWithDetail(id);
     }
 
-    @ApiOperation("更新物品状态")
-    @PutMapping("/{id}/status")
-    public Boolean updateStatus(@PathVariable Long id, @Valid @RequestBody ItemStatusUpdateDTO statusDTO) {
-        return itemsService.updateStatus(id, statusDTO.getStatus(), statusDTO.getRemark());
-    }
-
     @ApiOperation("批量更新物品状态")
     @PutMapping("/batch/status")
     public Boolean batchUpdateStatus(@RequestParam List<Long> ids,
@@ -95,6 +89,12 @@ public class ItemsController {
     @GetMapping("/user/{userId}")
     public List<ItemsVO> getByUserId(@PathVariable Long userId) {
         return itemsService.getByUserId(userId);
+    }
+
+    @ApiOperation("获取“我的”发布物品列表")
+    @GetMapping("/my")
+    public List<ItemsVO> getMyItems() {
+        return itemsService.getByUserId(UserContext.getUser());
     }
 
     @ApiOperation("获取物品统计信息")

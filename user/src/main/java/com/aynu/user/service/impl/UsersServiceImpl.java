@@ -138,7 +138,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
 
     @Override
-    public List<UserDTO> queryUserByIds(Iterable<Long> ids) {
+    public List<UserDTO> queryUserByIds(List<Long> ids) {
         List<Users> users = lambdaQuery().in(Users::getId, ids).eq(Users::getStatus, 1).list();
         List<UserProfiles> userProfiles = userProfilesService.lambdaQuery().in(UserProfiles::getUserId, ids).list();
 
@@ -244,6 +244,10 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
         if (userDTO.getGender() != null) {
             userProfiles.setGender(userDTO.getGender());
+        }
+
+        if (StrUtil.isNotBlank(userDTO.getRealName())) {
+            userProfiles.setRealName(userDTO.getRealName());
         }
 
         if (userDTO.getBirthday() != null) {

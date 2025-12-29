@@ -41,7 +41,7 @@ public class UserController {
 
     @ApiOperation("根据userId批量查询用户信息")
     @GetMapping("/list")
-    public List<UserDTO> queryUserByIds(@RequestParam("ids") Iterable<Long> ids) {
+    public List<UserDTO> queryUserByIds(@RequestParam("ids") List<Long> ids) {
         return usersService.queryUserByIds(ids);
     }
 

@@ -1,21 +1,22 @@
 package com.aynu.order.domain.po;
 
-import java.math.BigDecimal;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.aynu.api.enums.item.BillingType;
+import com.aynu.order.enums.OrderStatus;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import java.io.Serializable;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.math.BigDecimal;
+
 /**
  * <p>
- * 借用订单表，存储物品租赁的订单核心信息（逻辑外键关联物品/用户表）
+ * 借用订单表
  * </p>
- *
- * @author xiaozhou
- * @since 2025-12-23
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -23,31 +24,32 @@ import lombok.experimental.Accessors;
 @TableName("borrow_orders")
 public class BorrowOrders implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * 主键ID，自增
+     * 主键ID
      */
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     /**
-     * 关联物品ID（逻辑外键，关联items表id）
+     * 关联物品ID
      */
     private Long itemId;
 
     /**
-     * 借用人ID（逻辑外键，关联users表id）
+     * 借用人ID
      */
     private Long borrowerId;
 
     /**
-     * 出借人ID（逻辑外键，关联users表id）
+     * 出借人ID
      */
     private Long lenderId;
 
     /**
-     * 订单标题（对应物品标题）
+     * 订单标题（物品快照）
      */
     private String title;
 
@@ -57,9 +59,10 @@ public class BorrowOrders implements Serializable {
     private BigDecimal price;
 
     /**
-     * 计费类型：per_day-按天、per_week-按周、per_month-按月
+     * 计费类型
+     * 修改点：使用 api 模块定义的 BillingType 枚举
      */
-    private String billingType;
+    private BillingType billingType;
 
     /**
      * 押金金额（元）
@@ -72,7 +75,7 @@ public class BorrowOrders implements Serializable {
     private Integer borrowDays;
 
     /**
-     * 订单总金额（元）=单价×天数
+     * 订单总金额（元）
      */
     private BigDecimal totalAmount;
 
@@ -82,22 +85,23 @@ public class BorrowOrders implements Serializable {
     private String purpose;
 
     /**
-     * 订单状态：1-申请中 2-已确认 3-借用中 4-已归还 5-已取消 6-已拒绝
+     * 订单状态
+     * 修改点：使用 OrderStatus 枚举代替 Integer，避免魔术数字
      */
-    private Integer status;
+    private OrderStatus status;
 
     /**
-     * 实际借出时间戳（毫秒级）
+     * 实际借出时间戳
      */
     private Long borrowTime;
 
     /**
-     * 预计归还时间戳（毫秒级）
+     * 预计归还时间戳
      */
     private Long returnTime;
 
     /**
-     * 实际归还时间戳（毫秒级）
+     * 实际归还时间戳
      */
     private Long actualReturnTime;
 
@@ -107,14 +111,12 @@ public class BorrowOrders implements Serializable {
     private String cancelReason;
 
     /**
-     * 订单创建时间戳（毫秒级）
+     * 订单创建时间戳
      */
     private Long createdAt;
 
     /**
-     * 订单更新时间戳（毫秒级）
+     * 订单更新时间戳
      */
     private Long updatedAt;
-
-
 }

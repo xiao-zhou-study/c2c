@@ -10,14 +10,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(value = "item-service", fallbackFactory = ItemClientFallback.class)
 public interface ItemClient {
 
-
     /**
-     * 获取物品信息及出借人Id
+     * 根据id查询商品
      *
-     * @param id 物品id
-     * @return 物品信息及出借人Id
+     * @param id 商品id
+     * @return 商品信息
      */
     @GetMapping("/items/{id}")
     ItemsVO getById(@PathVariable Long id);
-
 }

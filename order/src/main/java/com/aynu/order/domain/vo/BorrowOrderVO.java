@@ -1,5 +1,7 @@
 package com.aynu.order.domain.vo;
 
+import com.aynu.api.enums.item.BillingType;
+import com.aynu.order.enums.OrderStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -44,8 +46,12 @@ public class BorrowOrderVO {
     @ApiModelProperty(value = "租赁单价")
     private BigDecimal price;
 
-    @ApiModelProperty(value = "计费类型：per_day-按天、per_week-按周、per_month-按月")
-    private String billingType;
+    /**
+     * 计费类型枚举
+     * 修改点：使用 BillingType 枚举，Jackson 会根据 @JsonValue 序列化为数字或指定格式
+     */
+    @ApiModelProperty(value = "计费类型：1-按天、2-按周、3-按月")
+    private BillingType billingType;
 
     @ApiModelProperty(value = "押金金额")
     private BigDecimal deposit;
@@ -59,8 +65,12 @@ public class BorrowOrderVO {
     @ApiModelProperty(value = "借用用途说明")
     private String purpose;
 
+    /**
+     * 订单状态枚举
+     * 修改点：使用 OrderStatus 枚举，前端可直接获取状态 Code 和 描述
+     */
     @ApiModelProperty(value = "订单状态：1-申请中 2-已确认 3-借用中 4-已归还 5-已取消 6-已拒绝")
-    private Integer status;
+    private OrderStatus status;
 
     @ApiModelProperty(value = "实际借出时间戳")
     private Long borrowTime;

@@ -1,117 +1,76 @@
 package com.aynu.item.domain.dto;
 
+import com.aynu.api.enums.item.BillingType;
+import com.aynu.api.enums.item.ConditionLevel;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@ApiModel("物品信息表，存储租赁物品的核心信息（逻辑外键关联用户/分类表）")
+@ApiModel("物品保存/更新请求参数")
 public class ItemsDTO implements Serializable {
 
-    /**
-     * 物品标题（如“九成新笔记本电脑”）
-     */
-    @ApiModelProperty("物品标题（如“九成新笔记本电脑”）")
-    @NotNull(message = "物品标题不能为空")
+    @ApiModelProperty("物品ID（更新时必填）")
+    private Long id; // 新增时为 null，更新时必填
+
+    @ApiModelProperty("物品标题")
+    @NotBlank(message = "物品标题不能为空")
+    @Size(max = 100, message = "标题不能超过100字")
     private String title;
 
-    /**
-     * 物品详细描述
-     */
-    @NotNull(message = "物品详细描述不能为空")
     @ApiModelProperty("物品详细描述")
+    @NotBlank(message = "描述不能为空")
     private String description;
 
-    /**
-     * 物品分类ID（逻辑外键，关联categories表id）
-     */
-    @NotNull(message = "物品分类ID不能为空")
-    @ApiModelProperty("物品分类ID（逻辑外键，关联categories表id）")
+    @ApiModelProperty("分类ID")
+    @NotNull(message = "分类不能为空")
     private Long categoryId;
 
-    /**
-     * 物品成色：new-全新、90%-九成新、80%-八成新等
-     */
-    @NotNull(message = "物品成色不能为空")
-    @ApiModelProperty("物品成色：new-全新、90%-九成新、80%-八成新等")
-    private String conditionLevel;
+    @ApiModelProperty("物品成色：0-全新、1-九成新等")
+    @NotNull(message = "成色不能为空")
+    private ConditionLevel conditionLevel;
 
-    /**
-     * 物品图片URL集合，JSON格式存储
-     */
-    @NotNull(message = "物品图片URL不能为空")
-    @ApiModelProperty("物品图片URL集合，JSON格式存储")
+    @ApiModelProperty("图片列表")
+    @NotEmpty(message = "请至少上传一张图片")
     private List<String> images;
 
-    /**
-     * 租赁单价（元）
-     */
-    @NotNull(message = "物品价格不能为空")
-    @ApiModelProperty("租赁单价（元）")
+    @ApiModelProperty("租赁单价")
+    @NotNull(message = "单价不能为空")
+    @DecimalMin(value = "0.01", message = "价格必须大于0")
     private BigDecimal price;
 
-    /**
-     * 计费类型：per_day-按天、per_week-按周、per_month-按月
-     */
+    @ApiModelProperty("计费类型")
     @NotNull(message = "计费类型不能为空")
-    @ApiModelProperty("计费类型：per_day-按天、per_week-按周、per_month-按月")
-    private String billingType;
+    private BillingType billingType; // 建议改用枚举
 
-    /**
-     * 押金金额（元）
-     */
-    @NotNull(message = "押金金额不能为空")
-    @ApiModelProperty("押金金额（元）")
+    @ApiModelProperty("押金")
+    @NotNull(message = "押金不能为空")
+    @DecimalMin(value = "0.00", message = "押金不能为负数")
     private BigDecimal deposit;
 
-    /**
-     * 价格是否可议：FALSE-不可议，TRUE-可议
-     */
-    @NotNull(message = "价格是否可议不能为空")
-    @ApiModelProperty("价格是否可议：FALSE-不可议，TRUE-可议")
+    @ApiModelProperty("是否可议价")
+    @NotNull(message = "是否可议价不能为空")
     private Boolean isNegotiable;
 
-    /**
-     * 最小租赁天数
-     */
-    @NotNull(message = "最小租赁天数不能为空")
     @ApiModelProperty("最小租赁天数")
+    @Min(value = 1, message = "最小租期为1天")
     private Integer minBorrowDays;
 
-    /**
-     * 最大租赁天数
-     */
-    @NotNull(message = "最大租赁天数不能为空")
     @ApiModelProperty("最大租赁天数")
     private Integer maxBorrowDays;
 
-    /**
-     * 物品所在位置（如“XX校区教学楼”）
-     */
-    @NotNull(message = "物品所在位置不能为空")
-    @ApiModelProperty("物品所在位置（如“XX校区教学楼”）")
+    @ApiModelProperty("校区/区域位置")
+    @NotBlank(message = "位置不能为空")
     private String location;
 
-    /**
-     * 详细地址
-     */
-    @NotNull(message = "详细地址不能为空")
     @ApiModelProperty("详细地址")
     private String address;
 
-    /**
-     * 借用条件（如“仅限本校学生”）
-     */
-    @NotNull(message = "借用条件不能为空")
-    @ApiModelProperty("借用条件（如“仅限本校学生”）")
+    @ApiModelProperty("借用条件限制")
     private String borrowConditions;
 }

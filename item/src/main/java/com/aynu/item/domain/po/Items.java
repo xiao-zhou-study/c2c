@@ -1,5 +1,8 @@
 package com.aynu.item.domain.po;
 
+import com.aynu.api.enums.item.BillingType;
+import com.aynu.api.enums.item.ConditionLevel;
+import com.aynu.api.enums.item.ItemStatus;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -29,7 +32,7 @@ public class Items implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 主键ID，自增
+     * 主键ID，采用雪花算法
      */
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
@@ -55,9 +58,10 @@ public class Items implements Serializable {
     private Long categoryId;
 
     /**
-     * 物品成色：new-全新、90%-九成新、80%-八成新等
+     * 物品成色：0-全新、1-九成新、2-八成新等
+     * 对应枚举 ConditionLevel
      */
-    private String conditionLevel;
+    private ConditionLevel conditionLevel;
 
     /**
      * 物品图片URL集合，JSON格式存储
@@ -70,9 +74,10 @@ public class Items implements Serializable {
     private BigDecimal price;
 
     /**
-     * 计费类型：per_day-按天、per_week-按周、per_month-按月
+     * 计费类型：PER_DAY-按天、PER_WEEK-按周、PER_MONTH-按月
+     * 对应枚举 BillingType
      */
-    private String billingType;
+    private BillingType billingType;
 
     /**
      * 押金金额（元）
@@ -111,8 +116,9 @@ public class Items implements Serializable {
 
     /**
      * 物品状态：1-可借用 2-已借出 3-已下架
+     * 对应枚举 ItemStatus
      */
-    private Integer status;
+    private ItemStatus status;
 
     /**
      * 浏览次数
@@ -133,6 +139,5 @@ public class Items implements Serializable {
      * 记录更新时间戳（毫秒级）
      */
     private Long updatedAt;
-
 
 }
