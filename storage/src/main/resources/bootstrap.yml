@@ -36,13 +36,24 @@ file:
     url-prefix: http://117.72.74.175/images
     max-size: 50
     allowed-types: jpg,jpeg,png,gif,bmp,webp,mp4,avi,pdf,doc,docx,xls,xlsx
-    # SFTP云服务器连接配置
-    sftp:
-      host: 117.72.74.175        # 云服务器IP地址
-      port: 22                    # SSH端口，默认22
-      username: root              # 登录用户名
-      password: zhou0403..     # 登录密码
-      timeout: 30000              # 连接超时时间(毫秒)
+s3:
+  # 1. 访问密钥 ID
+  access-key-id: "e6b6ac74e91459f5e6ae01580e4a5e40"
+  # 2. 机密访问密钥
+  secret-access-key: "935b02c6af7d6b5447c5d855cfdd0d6c67bea246586a56b6ae5a1672c6fbbd96"
+  # 3. 存储桶名称
+  bucket-name: "xywpgx"
+  # 4. 终结点
+  endpoint: "https://be60480ad0a841ee6aaecbb06703af4c.r2.cloudflarestorage.com"
+  # 5. 区域 (R2 统一使用 auto)
+  region: auto
+  # 6. 访问前缀
+  url-prefix: "https://zmwlovefmn.uk"
+  # 7. 路径样式访问 (R2 建议开启)
+  path-style-access-enabled: true
+  # 8. 业务限制
+  max-size: 50
+  allowed-types: jpg,jpeg,png,gif,bmp,webp,mp4,avi,pdf,doc,docx,xls,xlsx
 
 xy:
   swagger:

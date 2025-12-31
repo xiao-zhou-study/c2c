@@ -4,6 +4,7 @@ import com.aynu.storage.domain.po.Files;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -23,7 +24,7 @@ public interface IFilesService extends IService<Files> {
      * @param module 业务模块
      * @return 文件上传结果
      */
-    String uploadFile(MultipartFile file, String module);
+    String uploadFile(MultipartFile file, String module) throws IOException;
 
     /**
      * 批量上传文件
@@ -32,7 +33,7 @@ public interface IFilesService extends IService<Files> {
      * @param module 业务模块
      * @return 文件上传结果列表
      */
-    List<String> uploadFiles(MultipartFile[] files, String module);
+    List<String> uploadFiles(MultipartFile[] files, String module) throws IOException;
 
     /**
      * 删除文件（软删除）
