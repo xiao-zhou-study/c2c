@@ -126,8 +126,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
     @Override
     @Transactional
     public boolean delete(Long id) {
-        // 使用枚举常量 3 对应的 OFF_SHELF 状态
-        return updateStatus(id, ItemStatus.OFF_SHELF.getValue(), "下架删除");
+        return lambdaUpdate().eq(Items::getId, id).remove();
     }
 
     @Override
@@ -158,7 +157,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
 
     @Override
     @Transactional
-    public boolean batchUpdateStatus(List<Long> ids, Integer status, String remark) {
+    public boolean batchUpdateStatus(List<Long> ids, Integer status) {
         if (CollUtil.isEmpty(ids)) {
             return false;
         }

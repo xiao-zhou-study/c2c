@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/storage/r2")
+@RequestMapping("/files")
 @Api(tags = "Cloudflare R2存储接口")
 public class S3FilesController {
 

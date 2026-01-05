@@ -62,10 +62,9 @@ public interface IItemsService extends IService<Items> {
      * 批量更新物品状态
      * @param ids 物品ID列表
      * @param status 状态值
-     * @param remark 操作备注
      * @return 是否成功
      */
-    boolean batchUpdateStatus(List<Long> ids, Integer status, String remark);
+    boolean batchUpdateStatus(List<Long> ids, Integer status);
 
     /**
      * 根据分类分页查询物品

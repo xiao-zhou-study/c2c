@@ -48,7 +48,7 @@ s3:
   # 5. 区域 (R2 统一使用 auto)
   region: auto
   # 6. 访问前缀
-  url-prefix: "https://zmwlovefmn.uk"
+  url-prefix: "https://r2.zmwlovefmn.uk"
   # 7. 路径样式访问 (R2 建议开启)
   path-style-access-enabled: true
   # 8. 业务限制

@@ -2,6 +2,7 @@ package com.aynu.user.service;
 
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
+import com.aynu.api.enums.user.StatsEnum;
 import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
@@ -44,4 +45,6 @@ public interface IUsersService extends IService<Users> {
     void verifyUser(VerifyDTO verifyDTO);
 
     PageDTO<UserDTO> queryUserPage(PageQuery query, String keyword, Integer status);
+
+    void updateUserStats(Long userId, StatsEnum statsEnum);
 }

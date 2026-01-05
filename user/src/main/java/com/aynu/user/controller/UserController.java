@@ -2,6 +2,7 @@ package com.aynu.user.controller;
 
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
+import com.aynu.api.enums.user.StatsEnum;
 import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
@@ -87,5 +88,11 @@ public class UserController {
     @PostMapping("/verify")
     public void verifyUser(@Valid @RequestBody VerifyDTO verifyDTO) {
         usersService.verifyUser(verifyDTO);
+    }
+
+    @ApiOperation("修改用户统计数据")
+    @PutMapping("/{userId}/stats")
+    public void updateUserStats(@PathVariable("userId") Long userId, @RequestParam StatsEnum statsEnum) {
+        usersService.updateUserStats(userId, statsEnum);
     }
 }

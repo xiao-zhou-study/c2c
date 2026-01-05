@@ -18,6 +18,7 @@ public enum BillingType implements BaseEnum {
     @JsonValue
     final String code; // JSON返回给前端的字符串标识
 
+
     final String desc; // 描述信息
 
     BillingType(int value, String code, String desc) {

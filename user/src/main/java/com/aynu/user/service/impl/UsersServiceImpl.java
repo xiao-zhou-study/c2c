@@ -7,6 +7,7 @@ import com.aynu.api.client.auth.AuthClient;
 import com.aynu.api.dto.auth.RoleDTO;
 import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.api.dto.user.UserDTO;
+import com.aynu.api.enums.user.StatsEnum;
 import com.aynu.common.autoconfigure.mq.RabbitMqHelper;
 import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.common.domain.dto.PageDTO;
@@ -34,6 +35,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +67,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     private final UsersMapper userMapper;
 
     @Override
+    @Transactional
     public void saveUser(UserRegisterDTO dto) {
         String studentId = dto.getStudentId();
         Users user = lambdaQuery().eq(Users::getStudentId, studentId).one();
@@ -75,15 +78,38 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         String password = dto.getPassword();
         password = passwordEncoder.encode(password);
         Users users = new Users().setStudentId(studentId)
-                .setUsername(dto.getUsername())
+                .setUsername("安阳师范学院")
                 .setSchool(dto.getSchool())
                 .setDepartment(dto.getDepartment())
                 .setGrade(dto.getGrade())
                 .setEmail(dto.getEmail())
                 .setPasswordHash(password);
         setDefaultUserInfo(users);
-
         save(users);
+
+        UserStats userStats = new UserStats();
+        userStats.setUserId(users.getId());
+        userStats.setItemsPublished(0);
+        userStats.setItemsBorrowed(0);
+        userStats.setItemsLent(0);
+        userStats.setTotalRatings(0);
+        userStats.setAverageRating(new BigDecimal("0"));
+        userStats.setCreatedAt(System.currentTimeMillis());
+        userStats.setUpdatedAt(System.currentTimeMillis());
+        userStatsService.save(userStats);
+
+        UserProfiles userProfiles = new UserProfiles();
+        userProfiles.setUserId(users.getId());
+        userProfiles.setRealName("");
+        userProfiles.setGender(0);
+        userProfiles.setBirthday(null);
+        userProfiles.setBio("");
+        userProfiles.setQq("");
+        userProfiles.setWechat("");
+        userProfiles.setCreatedAt(System.currentTimeMillis());
+        userProfiles.setUpdatedAt(System.currentTimeMillis());
+        userProfilesService.save(userProfiles);
+
         UserDTO userDTO = BeanUtil.toBean(users, UserDTO.class);
         userDTO.setRole(ROLE_GENERAL);
         rabbitMqHelper.send(USER_EXCHANGE, USER_NEW_KEY, userDTO);
@@ -382,6 +408,15 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
             return convertToUserDTO(user, userProfiles1);
         }).collect(Collectors.toList());
         return PageDTO.of(page, list);
+    }
+
+    @Override
+    public void updateUserStats(Long userId, StatsEnum statsEnum) {
+        String dbField = statsEnum.getDbField();
+        userStatsService.lambdaUpdate()
+                .eq(UserStats::getUserId, userId)
+                .setSql(dbField + " = " + dbField + " + 1")
+                .update();
     }
 
     private void setDefaultUserInfo(Users users) {

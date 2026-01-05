@@ -58,9 +58,8 @@ public class ItemsController {
     @ApiOperation("批量更新物品状态")
     @PutMapping("/batch/status")
     public Boolean batchUpdateStatus(@RequestParam List<Long> ids,
-                                     @RequestParam Integer status,
-                                     @RequestParam(required = false) String remark) {
-        return itemsService.batchUpdateStatus(ids, status, remark);
+                                     @RequestParam Integer status) {
+        return itemsService.batchUpdateStatus(ids, status);
     }
 
     @ApiOperation("根据分类分页查询物品")
