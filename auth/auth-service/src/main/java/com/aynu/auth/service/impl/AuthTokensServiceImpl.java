@@ -5,8 +5,10 @@ import com.aynu.api.dto.user.LoginFormDTO;
 import com.aynu.auth.common.constants.JwtConstants;
 import com.aynu.auth.domain.dto.LoginAdminFormDTO;
 import com.aynu.auth.domain.po.AuthTokens;
+import com.aynu.auth.domain.vo.TurnstileVerificationResult;
 import com.aynu.auth.mapper.AuthTokensMapper;
 import com.aynu.auth.service.IAuthTokensService;
+import com.aynu.auth.service.ITurnstileService;
 import com.aynu.auth.util.JwtTool;
 import com.aynu.common.domain.dto.LoginUserDTO;
 import com.aynu.common.exceptions.BadRequestException;
@@ -32,9 +34,13 @@ public class AuthTokensServiceImpl extends ServiceImpl<AuthTokensMapper, AuthTok
 
     private final JwtTool jwtTool;
     private final UserClient userClient;
+    private final ITurnstileService turnstileService;
 
     @Override
     public String login(LoginFormDTO loginFormDTO, boolean isStaff) {
+        // 0. Turnstile 验证
+        verifyTurnstileToken(loginFormDTO.getTurnstileToken(), "用户登录");
+        
         // 1.查询并校验用户信息
         LoginUserDTO detail = userClient.queryUserDetail(loginFormDTO, isStaff);
         if (detail == null) {
@@ -50,6 +56,9 @@ public class AuthTokensServiceImpl extends ServiceImpl<AuthTokensMapper, AuthTok
 
     @Override
     public String loginAdmin(LoginAdminFormDTO dto) {
+        // 0. Turnstile 验证
+        verifyTurnstileToken(dto.getTurnstileToken(), "管理员登录");
+        
         // 1.查询并校验用户信息
         if (!"admin".equals(dto.getUsername())) {
             throw new BadRequestException("用户名错误");
@@ -66,6 +75,27 @@ public class AuthTokensServiceImpl extends ServiceImpl<AuthTokensMapper, AuthTok
         detail.setRememberMe(dto.getRememberMe());
 
         return generateToken(detail);
+    }
+
+    /**
+     * 验证 Turnstile 令牌
+     */
+    private void verifyTurnstileToken(String token, String action) {
+        if (token == null || token.trim().isEmpty()) {
+            log.warn("{} 缺少 Turnstile 验证令牌", action);
+            throw new BadRequestException("请先完成人机验证");
+        }
+        
+        log.debug("开始验证 {} Turnstile 令牌", action);
+        TurnstileVerificationResult result = turnstileService.verifyToken(token);
+        
+        if (!result.isSuccess()) {
+            String errorMessage = result.getMessage() != null ? result.getMessage() : "人机验证失败";
+            log.warn("{} Turnstile 验证失败: {}", action, errorMessage);
+            throw new BadRequestException(errorMessage);
+        }
+        
+        log.info("{} Turnstile 验证成功", action);
     }
 
     private String generateToken(LoginUserDTO detail) {

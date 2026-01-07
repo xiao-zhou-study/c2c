@@ -28,13 +28,13 @@ public class RedissonConfig {
 
     @Bean
     @ConditionalOnMissingBean
-    public LockAspect lockAspect(RedissonClient redissonClient){
+    public LockAspect lockAspect(RedissonClient redissonClient) {
         return new LockAspect(redissonClient);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public RedissonClient redissonClient(RedisProperties properties){
+    public RedissonClient redissonClient(RedisProperties properties) {
         log.debug("尝试初始化RedissonClient");
         // 1.读取Redis配置
         RedisProperties.Cluster cluster = properties.getCluster();
@@ -42,32 +42,32 @@ public class RedissonConfig {
         String password = properties.getPassword();
         int timeout = 3000;
         Duration d = properties.getTimeout();
-        if(d != null){
+        if (d != null) {
             timeout = Long.valueOf(d.toMillis()).intValue();
         }
         // 2.设置Redisson配置
         Config config = new Config();
-        if(cluster != null && !CollectionUtil.isEmpty(cluster.getNodes())){
+        if (cluster != null && !CollectionUtil.isEmpty(cluster.getNodes())) {
             // 集群模式
             config.useClusterServers()
                     .addNodeAddress(convert(cluster.getNodes()))
                     .setConnectTimeout(timeout)
-                    .setPassword(password);
-        }else if(sentinel != null && !StrUtil.isEmpty(sentinel.getMaster())){
+                    .setPassword(StrUtil.isBlank(password) ? null : password);
+        } else if (sentinel != null && !StrUtil.isEmpty(sentinel.getMaster())) {
             // 哨兵模式
             config.useSentinelServers()
                     .setMasterName(sentinel.getMaster())
                     .addSentinelAddress(convert(sentinel.getNodes()))
                     .setConnectTimeout(timeout)
                     .setDatabase(0)
-                    .setPassword(password);
-        }else{
+                    .setPassword(StrUtil.isBlank(password) ? null : password);
+        } else {
             // 单机模式
             config.useSingleServer()
                     .setAddress(String.format("redis://%s:%d", properties.getHost(), properties.getPort()))
                     .setConnectTimeout(timeout)
                     .setDatabase(0)
-                    .setPassword(password);
+                    .setPassword(StrUtil.isBlank(password) ? null : password);
         }
         // 3.创建Redisson客户端
         return Redisson.create(config);

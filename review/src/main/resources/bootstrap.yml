@@ -22,7 +22,7 @@ spring:
             refresh: false
           - data-id: shared-feign.yaml # 共享feign配置
             refresh: false
-        namespace: 66f565f6-6b64-408c-a3c3-8f30ce3b6711
+        namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
 xy:
   swagger:
     enable: true

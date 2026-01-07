@@ -8,6 +8,7 @@ import org.springframework.cloud.bootstrap.encrypt.KeyProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.rsa.crypto.KeyStoreKeyFactory;
+import org.springframework.web.client.RestTemplate;
 
 import java.security.KeyPair;
 
@@ -34,5 +35,10 @@ public class AuthConfig {
     @Bean
     public TomcatContextCustomizer cookieTomcatContextCustomizer() {
         return context -> context.setCookieProcessor(new LegacyCookieProcessor());
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

@@ -28,4 +28,7 @@ public class LoginFormDTO {
 
     @ApiModelProperty(value = "7天免密登录", example = "true")
     private Boolean rememberMe = false;
+    
+    @ApiModelProperty(value = "Turnstile 验证令牌", example = "0x4AAAAAACKmvc6zs8DzCX1u_xxx")
+    private String turnstileToken;
 }

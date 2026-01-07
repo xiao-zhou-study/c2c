@@ -45,23 +45,25 @@ public class JwtSignerHolder {
     );
 
     @PostConstruct
-    public void init(){
+    public void init() {
         // 尝试获取jwk秘钥
         ses.submit(new MarkedRunnable(new JwkTask(discoveryClient)));
     }
 
-    public void shutdown(){
+    public void shutdown() {
         ses.shutdown();
         log.debug("销毁加载秘钥线程 AuthFetchJwkThread");
     }
-    public static void sleep(long time){
+
+    public static void sleep(long time) {
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
-    class JwkTask implements Runnable{
+
+    class JwkTask implements Runnable {
         private final DiscoveryClient discoveryClient;
 
         public JwkTask(DiscoveryClient discoveryClient) {
@@ -74,7 +76,7 @@ public class JwtSignerHolder {
                 try {
                     log.info("尝试加载auth服务地址");
                     List<ServiceInstance> instances = discoveryClient.getInstances("auth-service");
-                    if(CollUtils.isEmpty(instances)){
+                    if (CollUtils.isEmpty(instances)) {
                         log.error("加载auth服务地址失败，原因：数据为空");
                         sleep(10000);
                         continue;
@@ -86,7 +88,7 @@ public class JwtSignerHolder {
                     log.info("尝试加载jwk秘钥");
                     // 请求获取jwk
                     String result = HttpUtil.get(jwkUri, StandardCharsets.UTF_8);
-                    if(result == null){
+                    if (result == null) {
                         log.error("加载jwk秘钥失败，原因：数据为空");
                         sleep(10000);
                         continue;
