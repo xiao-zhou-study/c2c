@@ -105,7 +105,7 @@ public class TurnstileServiceImpl implements ITurnstileService {
             
             if (!success && jsonResponse.has("error-codes")) {
                 JsonNode errorCodes = jsonResponse.get("error-codes");
-                if (errorCodes.isArray() && errorCodes.size() > 0) {
+                if (errorCodes.isArray() && !errorCodes.isEmpty()) {
                     String errorCode = errorCodes.get(0).asText();
                     result.setErrorCodes(errorCode);
                     
