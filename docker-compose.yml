@@ -4,6 +4,8 @@ services:
     container_name: xywpgx-gateway
     ports:
       - "10010:10010"
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx128m -Duser.timezone=Asia/Shanghai
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -13,6 +15,8 @@ services:
     container_name: xywpgx-auth
     ports:
       - "8081:8081"
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx256m -Duser.timezone=Asia/Shanghai
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -22,6 +26,8 @@ services:
     container_name: xywpgx-user
     ports:
       - "8082:8082"
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx256m -Duser.timezone=Asia/Shanghai
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -31,6 +37,8 @@ services:
     container_name: xywpgx-item
     ports:
       - "8083:8083"
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx128m -Duser.timezone=Asia/Shanghai
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -40,6 +48,8 @@ services:
     container_name: xywpgx-order
     ports:
       - "8084:8084"
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx128m -Duser.timezone=Asia/Shanghai
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -49,6 +59,8 @@ services:
     container_name: xywpgx-notification
     ports:
       - "8085:8085"
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx128m -Duser.timezone=Asia/Shanghai
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -58,6 +70,8 @@ services:
     container_name: xywpgx-storage
     ports:
       - "8086:8086"
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx128m -Duser.timezone=Asia/Shanghai
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -67,6 +81,8 @@ services:
     container_name: xywpgx-review
     ports:
       - "8087:8087"
+    environment:
+      - JAVA_OPTS=-Xms128m -Xmx128m -Duser.timezone=Asia/Shanghai
     networks:
       - xywpgx-network
     restart: unless-stopped
