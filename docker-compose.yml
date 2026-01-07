@@ -1,0 +1,76 @@
+services:
+  gateway:
+    build: ./gateway
+    container_name: xywpgx-gateway
+    ports:
+      - "10010:10010"
+    networks:
+      - xywpgx-network
+    restart: unless-stopped
+
+  auth:
+    build: ./auth/auth-service
+    container_name: xywpgx-auth
+    ports:
+      - "8081:8081"
+    networks:
+      - xywpgx-network
+    restart: unless-stopped
+
+  user:
+    build: ./user
+    container_name: xywpgx-user
+    ports:
+      - "8082:8082"
+    networks:
+      - xywpgx-network
+    restart: unless-stopped
+
+  item:
+    build: ./item
+    container_name: xywpgx-item
+    ports:
+      - "8083:8083"
+    networks:
+      - xywpgx-network
+    restart: unless-stopped
+
+  order:
+    build: ./order
+    container_name: xywpgx-order
+    ports:
+      - "8084:8084"
+    networks:
+      - xywpgx-network
+    restart: unless-stopped
+
+  notification:
+    build: ./notification
+    container_name: xywpgx-notification
+    ports:
+      - "8085:8085"
+    networks:
+      - xywpgx-network
+    restart: unless-stopped
+
+  storage:
+    build: ./storage
+    container_name: xywpgx-storage
+    ports:
+      - "8086:8086"
+    networks:
+      - xywpgx-network
+    restart: unless-stopped
+
+  review:
+    build: ./review
+    container_name: xywpgx-review
+    ports:
+      - "8087:8087"
+    networks:
+      - xywpgx-network
+    restart: unless-stopped
+
+networks:
+  xywpgx-network:
+    driver: bridge
