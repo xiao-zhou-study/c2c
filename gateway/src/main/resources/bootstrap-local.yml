@@ -5,11 +5,9 @@ spring:
       discovery:
         namespace: 87d67ed7-fad5-439c-96c8-28da38133d98
         group: DEFAULT_GROUP
-        register-enabled: true
         ip: 127.0.0.1
       config:
         namespace: 87d67ed7-fad5-439c-96c8-28da38133d98
-
 logging:
   level:
     com.aynu: debug
