@@ -1,13 +1,13 @@
 spring:
   cloud:
     nacos:
-      server-addr: 117.72.74.175:8848
+      server-addr: 154.9.25.248:8848
       discovery:
-        namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
+        namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
         group: DEFAULT_GROUP
-        ip: 74.48.70.8
+        ip: 154.9.25.248
       config:
-        namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
+        namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
 logging:
   level:
     com.aynu: debug
