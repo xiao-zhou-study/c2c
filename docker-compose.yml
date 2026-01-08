@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   gateway:
     build: ./gateway
@@ -5,11 +7,15 @@ services:
     ports:
       - "10010:10010"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+      # TieredStopAtLevel=1 极大加快启动速度
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
         limits:
-          memory: 768M  # JVM 512 + 256 预留
+          cpus: '1.0'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -20,11 +26,15 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - JAVA_OPTS=-Xms384m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+      # Auth是核心，保持较高内存，开启启动优化
+      - JAVA_OPTS=-Xms384m -Xmx768m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
         limits:
-          memory: 1G    # JVM 768 + 256 预留
+          cpus: '1.5'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -35,11 +45,13 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - JAVA_OPTS=-Xms384m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+      # 调低了 Xmx (由768m降至512m)，因为你之前stats显示只用了474m
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
         limits:
-          memory: 1G
+          cpus: '1.0'
+          memory: 768M
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -50,10 +62,11 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 768M
     networks:
       - xywpgx-network
@@ -65,10 +78,11 @@ services:
     ports:
       - "8084:8084"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 768M
     networks:
       - xywpgx-network
@@ -80,10 +94,11 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
         limits:
+          cpus: '0.8'
           memory: 768M
     networks:
       - xywpgx-network
@@ -95,10 +110,11 @@ services:
     ports:
       - "8086:8086"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
         limits:
+          cpus: '0.8'
           memory: 768M
     networks:
       - xywpgx-network
@@ -110,11 +126,13 @@ services:
     ports:
       - "8087:8087"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+      # 进一步调低了 review 的内存 (降至384m)，它负载极低
+      - JAVA_OPTS=-Xms128m -Xmx384m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
         limits:
-          memory: 768M
+          cpus: '0.5'
+          memory: 512M
     networks:
       - xywpgx-network
     restart: unless-stopped
