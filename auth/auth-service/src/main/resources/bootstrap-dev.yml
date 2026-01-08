@@ -11,7 +11,3 @@ spring:
 logging:
   level:
     com.aynu: debug
-
-# Turnstile 验证配置（开发环境关闭）
-turnstile:
-  enabled: false
