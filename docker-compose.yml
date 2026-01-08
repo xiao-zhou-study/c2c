@@ -6,6 +6,10 @@ services:
       - "10010:10010"
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 768M  # JVM 512 + 256 预留
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -17,6 +21,10 @@ services:
       - "8081:8081"
     environment:
       - JAVA_OPTS=-Xms384m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 1G    # JVM 768 + 256 预留
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -28,6 +36,10 @@ services:
       - "8082:8082"
     environment:
       - JAVA_OPTS=-Xms384m -Xmx768m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -39,6 +51,10 @@ services:
       - "8083:8083"
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -50,6 +66,10 @@ services:
       - "8084:8084"
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -61,6 +81,10 @@ services:
       - "8085:8085"
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -72,6 +96,10 @@ services:
       - "8086:8086"
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     networks:
       - xywpgx-network
     restart: unless-stopped
@@ -83,6 +111,10 @@ services:
       - "8087:8087"
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Duser.timezone=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     networks:
       - xywpgx-network
     restart: unless-stopped
