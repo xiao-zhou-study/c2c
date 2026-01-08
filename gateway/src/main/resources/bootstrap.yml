@@ -1,7 +1,10 @@
 server:
-  port: 10010  #端口
-  tomcat:
-    uri-encoding: UTF-8   #服务编码
+  port: 10010  # 端口
+  http2:
+    enabled: true  # 开启 HTTP/2 支持 (h2c)
+  netty:
+    connection-timeout: 5s # 优化连接超时
+
 spring:
   profiles:
     active: dev
