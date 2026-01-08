@@ -21,7 +21,6 @@ spring:
           - data-id: shared-logs.yaml # 共享日志配置
             refresh: false
           - dataId: shared-mq.yaml # 共享mq配置
-        namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
 
 encrypt:
   key-store:

@@ -3,9 +3,11 @@ spring:
     nacos:
       server-addr: 117.72.74.175:8848 # nacos注册中心
       discovery:
-        namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
+        namespace: 4f3a530c-0de1-4efc-84cf-0b66d585922b
         group: DEFAULT_GROUP
         register-enabled: false
+      config:
+        namespace: 4f3a530c-0de1-4efc-84cf-0b66d585922b
 
 logging:
   level:

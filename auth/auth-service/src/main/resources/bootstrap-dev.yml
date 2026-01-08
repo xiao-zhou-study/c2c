@@ -6,6 +6,8 @@ spring:
         namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
         group: DEFAULT_GROUP
         ip: 74.48.70.8
+      config:
+        namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
 logging:
   level:
     com.aynu: debug

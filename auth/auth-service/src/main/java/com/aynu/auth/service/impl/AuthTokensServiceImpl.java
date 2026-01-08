@@ -38,7 +38,7 @@ public class AuthTokensServiceImpl extends ServiceImpl<AuthTokensMapper, AuthTok
 
     @Override
     public String login(LoginFormDTO loginFormDTO, boolean isStaff) {
-        // 0. Turnstile 验证
+
         verifyTurnstileToken(loginFormDTO.getTurnstileToken());
 
         // 1.查询并校验用户信息
@@ -79,12 +79,6 @@ public class AuthTokensServiceImpl extends ServiceImpl<AuthTokensMapper, AuthTok
      * 验证 Turnstile 令牌
      */
     private void verifyTurnstileToken(String token) {
-        if (token == null || token.trim().isEmpty()) {
-            log.warn("{} 缺少 Turnstile 验证令牌", "用户登录");
-            throw new BadRequestException("请先完成人机验证");
-        }
-
-        log.debug("开始验证 {} Turnstile 令牌", "用户登录");
         TurnstileVerificationResult result = turnstileService.verifyToken(token);
 
         if (!result.isSuccess()) {

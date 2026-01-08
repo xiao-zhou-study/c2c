@@ -23,7 +23,6 @@ spring:
           - data-id: shared-feign.yaml # 共享feign配置
             refresh: false
           - dataId: shared-mq.yaml # 共享mq配置
-        namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
 xy:
   swagger:
     enable: true

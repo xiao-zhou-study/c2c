@@ -31,6 +31,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -56,7 +59,7 @@ import static com.aynu.common.constants.MqConstants.Key.USER_NEW_KEY;
  */
 @Service
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements IUsersService {
 
     private final IUserProfilesService userProfilesService;
@@ -65,9 +68,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     private final PasswordEncoder passwordEncoder;
     private final RabbitMqHelper rabbitMqHelper;
     private final UsersMapper userMapper;
+    private final Executor taskExecutor;
 
     @Override
-    @Transactional
     public void saveUser(UserRegisterDTO dto) {
         String studentId = dto.getStudentId();
         Users user = lambdaQuery().eq(Users::getStudentId, studentId).one();
@@ -75,8 +78,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
             throw new BadRequestException("用户已存在");
         }
 
-        String password = dto.getPassword();
-        password = passwordEncoder.encode(password);
+        String password = passwordEncoder.encode(dto.getPassword());
         Users users = new Users().setStudentId(studentId)
                 .setUsername(dto.getUsername())
                 .setSchool("安阳师范学院")
@@ -85,30 +87,53 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
                 .setEmail(dto.getEmail())
                 .setPasswordHash(password);
         setDefaultUserInfo(users);
+
         save(users);
 
-        UserStats userStats = new UserStats();
-        userStats.setUserId(users.getId());
-        userStats.setItemsPublished(0);
-        userStats.setItemsBorrowed(0);
-        userStats.setItemsLent(0);
-        userStats.setTotalRatings(0);
-        userStats.setAverageRating(new BigDecimal("0"));
-        userStats.setCreatedAt(System.currentTimeMillis());
-        userStats.setUpdatedAt(System.currentTimeMillis());
-        userStatsService.save(userStats);
+        UserStats userStats = new UserStats().setUserId(users.getId())
+                .setItemsPublished(0)
+                .setItemsBorrowed(0)
+                .setItemsLent(0)
+                .setTotalRatings(0)
+                .setAverageRating(new BigDecimal("0"))
+                .setCreatedAt(System.currentTimeMillis())
+                .setUpdatedAt(System.currentTimeMillis());
 
-        UserProfiles userProfiles = new UserProfiles();
-        userProfiles.setUserId(users.getId());
-        userProfiles.setRealName("");
-        userProfiles.setGender(0);
-        userProfiles.setBirthday(null);
-        userProfiles.setBio("");
-        userProfiles.setQq("");
-        userProfiles.setWechat("");
-        userProfiles.setCreatedAt(System.currentTimeMillis());
-        userProfiles.setUpdatedAt(System.currentTimeMillis());
-        userProfilesService.save(userProfiles);
+        UserProfiles userProfiles = new UserProfiles().setUserId(users.getId())
+                .setRealName("")
+                .setGender(0)
+                .setBio("")
+                .setQq("")
+                .setWechat("")
+                .setCreatedAt(System.currentTimeMillis())
+                .setUpdatedAt(System.currentTimeMillis());
+
+        CompletableFuture.runAsync(() -> {
+            int maxRetries = 3;
+            int attempt = 0;
+            boolean success = false;
+
+            while (!success && attempt < maxRetries) {
+                try {
+                    userStatsService.save(userStats);
+                    userProfilesService.save(userProfiles);
+                    success = true;
+                    log.info("用户扩展信息初始化成功，用户ID: {}", users.getId());
+                } catch (Exception e) {
+                    attempt++;
+                    log.warn("异步初始化用户信息失败，正在进行第 {} 次重试. 原因: {}", attempt, e.getMessage());
+                    if (attempt >= maxRetries) {
+                        log.error("用户扩展信息初始化最终失败，用户ID: {}，请手动核查数据！", users.getId());
+                    } else {
+                        try {
+                            Thread.sleep(2000L * attempt);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+            }
+        }, taskExecutor);
 
         UserDTO userDTO = BeanUtil.toBean(users, UserDTO.class);
         userDTO.setRole(ROLE_GENERAL);

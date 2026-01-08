@@ -22,7 +22,6 @@ spring:
             refresh: false
           - data-id: shared-feign.yaml # 共享feign配置
             refresh: false
-        namespace: 95d88ea9-11b0-4a70-8cab-688fab84f639
   servlet:
     multipart:
       enabled: true
