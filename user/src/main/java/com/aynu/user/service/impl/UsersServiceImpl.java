@@ -78,8 +78,8 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         String password = dto.getPassword();
         password = passwordEncoder.encode(password);
         Users users = new Users().setStudentId(studentId)
-                .setUsername("安阳师范学院")
-                .setSchool(dto.getSchool())
+                .setUsername(dto.getUsername())
+                .setSchool("安阳师范学院")
                 .setDepartment(dto.getDepartment())
                 .setGrade(dto.getGrade())
                 .setEmail(dto.getEmail())
