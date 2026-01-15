@@ -2,6 +2,8 @@ spring:
   cloud:
     nacos:
       server-addr: 154.9.25.248:8848
+      username: nacos
+      password: zhoujiadayuan
       discovery:
         namespace: 87d67ed7-fad5-439c-96c8-28da38133d98
         group: DEFAULT_GROUP
