@@ -7,7 +7,6 @@ services:
     ports:
       - "10010:10010"
     environment:
-      # TieredStopAtLevel=1 极大加快启动速度
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
@@ -17,7 +16,7 @@ services:
         reservations:
           cpus: '0.25'
     networks:
-      - xywpgx-network
+      - micro-net
     restart: unless-stopped
 
   auth:
@@ -26,7 +25,6 @@ services:
     ports:
       - "8081:8081"
     environment:
-      # Auth是核心，保持较高内存，开启启动优化
       - JAVA_OPTS=-Xms384m -Xmx768m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
@@ -36,7 +34,7 @@ services:
         reservations:
           cpus: '0.5'
     networks:
-      - xywpgx-network
+      - micro-net
     restart: unless-stopped
 
   user:
@@ -45,7 +43,6 @@ services:
     ports:
       - "8082:8082"
     environment:
-      # 调低了 Xmx (由768m降至512m)，因为你之前stats显示只用了474m
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
@@ -53,7 +50,7 @@ services:
           cpus: '1.0'
           memory: 768M
     networks:
-      - xywpgx-network
+      - micro-net
     restart: unless-stopped
 
   item:
@@ -69,7 +66,7 @@ services:
           cpus: '1.0'
           memory: 768M
     networks:
-      - xywpgx-network
+      - micro-net
     restart: unless-stopped
 
   order:
@@ -85,7 +82,7 @@ services:
           cpus: '1.0'
           memory: 768M
     networks:
-      - xywpgx-network
+      - micro-net
     restart: unless-stopped
 
   notification:
@@ -101,7 +98,7 @@ services:
           cpus: '0.8'
           memory: 768M
     networks:
-      - xywpgx-network
+      - micro-net
     restart: unless-stopped
 
   storage:
@@ -117,7 +114,7 @@ services:
           cpus: '0.8'
           memory: 768M
     networks:
-      - xywpgx-network
+      - micro-net
     restart: unless-stopped
 
   review:
@@ -126,7 +123,6 @@ services:
     ports:
       - "8087:8087"
     environment:
-      # 进一步调低了 review 的内存 (降至384m)，它负载极低
       - JAVA_OPTS=-Xms128m -Xmx384m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
     deploy:
       resources:
@@ -134,9 +130,10 @@ services:
           cpus: '0.5'
           memory: 512M
     networks:
-      - xywpgx-network
+      - micro-net
     restart: unless-stopped
 
+# 关键修改：将 networks 块定义为使用外部已存在的 micro-net
 networks:
-  xywpgx-network:
-    driver: bridge
+  micro-net:
+    external: true
