@@ -2,13 +2,15 @@ spring:
   cloud:
     nacos:
       server-addr: nacos:8848
-      username: nacos
-      password: zhoujiadayuan
       discovery:
         namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
         group: DEFAULT_GROUP
+        username: nacos
+        password: zhoujiadayuan
       config:
         namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
+        username: nacos
+        password: zhoujiadayuan
 logging:
   level:
     com.aynu: debug
