@@ -25,6 +25,18 @@ public class AuthApplication {
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(AuthApplication.class, args);
         Environment env = context.getEnvironment();
+
+        // 打印Nacos配置
+        String nacosUsername = env.getProperty("spring.cloud.nacos.discovery.username");
+        String nacosPassword = env.getProperty("spring.cloud.nacos.discovery.password");
+        log.info("Nacos Discovery Username: {}", nacosUsername);
+        log.info("Nacos Discovery Password: {}", nacosPassword);
+
+        String configUsername = env.getProperty("spring.cloud.nacos.config.username");
+        String configPassword = env.getProperty("spring.cloud.nacos.config.password");
+        log.info("Nacos Config Username: {}", configUsername);
+        log.info("Nacos Config Password: {}", configPassword);
+
         printLog(env);
     }
 
