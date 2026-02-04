@@ -181,6 +181,28 @@ services:
       - micro-net
     restart: unless-stopped
 
+  ai:
+    build: ./ai
+    container_name: xywpgx-ai
+    ports:
+      - "8088:8088"
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
+      - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
+      - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
+      - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+    networks:
+      - micro-net
+    restart: unless-stopped
+
 # 关键修改：将 networks 块定义为使用外部已存在的 micro-net
 networks:
   micro-net:
