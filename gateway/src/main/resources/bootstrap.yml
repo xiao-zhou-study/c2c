@@ -66,6 +66,12 @@ spring:
             - Path=/ns/**
           filters:
             - PreserveHostHeader
+        - id: ai
+          uri: lb://ai-service
+          predicates:
+            - Path=/ai/**
+          filters:
+            - PreserveHostHeader
       default-filters:
         - StripPrefix=1
 

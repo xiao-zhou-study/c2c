@@ -1,0 +1,16 @@
+server:
+  port: 8088
+  tomcat:
+    uri-encoding: UTF-8
+
+spring:
+  application:
+    name: ai-service
+  profiles:
+    active: dev
+  data:
+    redis:
+      host: 154.9.25.248
+      port: 6379
+      password: zhoujiadayuan
+      database: 0

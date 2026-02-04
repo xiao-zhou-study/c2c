@@ -1,0 +1,26 @@
+spring:
+  cloud:
+    nacos:
+      server-addr: nacos:8848
+      discovery:
+        namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
+        group: DEFAULT_GROUP
+      config:
+        namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
+        group: DEFAULT_GROUP
+        file-extension: yaml
+  config:
+    import:
+      - optional:nacos:shared-spring.yaml?refresh=false
+      - optional:nacos:shared-logs.yaml?refresh=false
+      - optional:nacos:langchain4j.yaml?refresh=false
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: zhoujiadayuan
+      database: 0
+
+logging:
+  level:
+    com.aynu: debug
