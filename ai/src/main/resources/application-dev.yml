@@ -5,7 +5,6 @@ spring:
       discovery:
         namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
         group: DEFAULT_GROUP
-        ip: 127.0.0.1
       config:
         namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
         group: DEFAULT_GROUP
