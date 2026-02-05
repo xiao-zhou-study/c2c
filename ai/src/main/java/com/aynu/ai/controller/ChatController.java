@@ -1,8 +1,8 @@
 package com.aynu.ai.controller;
 
 import com.aynu.ai.service.ConsultantService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
@@ -10,11 +10,17 @@ import reactor.core.publisher.Flux;
 @RestController
 @RequestMapping("/chat")
 public class ChatController {
-    @Autowired
-    private ConsultantService consultantService;
+    private final ConsultantService consultantService;
+
+    public ChatController(ConsultantService consultantService) {
+        this.consultantService = consultantService;
+    }
 
     @RequestMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> chat(String memoryId, String message) {
-        return consultantService.chat(memoryId, message);
+    public Flux<ServerSentEvent<String>> chat(String memoryId, String message) {
+        return consultantService.chat(memoryId, message)
+                .map(content -> ServerSentEvent.<String>builder()
+                        .data(content) // 这里会自动处理成 data: content
+                        .build());
     }
 }
