@@ -21,6 +21,14 @@ spring:
             refresh: false
     gateway:
       routes:
+        - id: ai
+          uri: lb://ai-service
+          predicates:
+            - Path=/ai/**
+          filters:
+            - PreserveHostHeader
+            - StripPrefix=1
+
         - id: as
           uri: lb://auth-service
           predicates:
@@ -66,10 +74,6 @@ spring:
             - Path=/ns/**
           filters:
             - PreserveHostHeader
-        - id: ai
-          uri: lb://ai-service
-          predicates:
-            - Path=/ai/**
       default-filters:
         - StripPrefix=1
 
