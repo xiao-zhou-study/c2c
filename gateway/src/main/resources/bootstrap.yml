@@ -67,7 +67,7 @@ spring:
           filters:
             - PreserveHostHeader
         - id: ai
-          uri: http://ai-service:8088
+          uri: http://172.18.0.15:8088
           predicates:
             - Path=/ai/**
           filters:
