@@ -70,8 +70,6 @@ spring:
           uri: lb://ai-service
           predicates:
             - Path=/ai/**
-          filters:
-            - PreserveHostHeader
       default-filters:
         - StripPrefix=1
 
