@@ -308,9 +308,10 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         vo.setDescription(item.getDescription());
         vo.setCategoryId(item.getCategoryId());
         vo.setConditionLevel(item.getConditionLevel()
-                .getDesc());
+                .getValue());
         vo.setPrice(item.getPrice());
-        vo.setBillingType(item.getBillingType());
+        vo.setBillingType(item.getBillingType()
+                .getValue());
         vo.setDeposit(item.getDeposit());
         vo.setIsNegotiable(item.getIsNegotiable());
         vo.setMinBorrowDays(item.getMinBorrowDays());
@@ -318,7 +319,8 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         vo.setLocation(item.getLocation());
         vo.setAddress(item.getAddress());
         vo.setBorrowConditions(item.getBorrowConditions());
-        vo.setStatus(item.getStatus());
+        vo.setStatus(item.getStatus()
+                .getValue());
         vo.setViewCount(item.getViewCount());
         vo.setFavoriteCount(item.getFavoriteCount());
 
