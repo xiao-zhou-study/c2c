@@ -1,7 +1,6 @@
 package com.aynu.api.dto.item;
 
 import com.aynu.api.enums.item.BillingType;
-import com.aynu.api.enums.item.ConditionLevel;
 import com.aynu.api.enums.item.ItemStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -58,7 +57,7 @@ public class ItemsVO implements Serializable {
     /**
      * 物品成色：对应枚举 ConditionLevel (0-全新, 1-九成新, 2-八成新)
      */
-    private ConditionLevel conditionLevel;
+    private String conditionLevel;
 
     /**
      * 物品图片URL集合

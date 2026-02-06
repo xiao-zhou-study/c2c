@@ -5,6 +5,8 @@ import cn.hutool.json.JSONUtil;
 import com.aynu.api.client.user.UserClient;
 import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.api.dto.user.UserDTO;
+import com.aynu.api.enums.item.BillingType;
+import com.aynu.api.enums.item.ConditionLevel;
 import com.aynu.api.enums.item.ItemStatus;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
@@ -72,14 +74,16 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
                                            Long status,
                                            BigDecimal minPrice,
                                            BigDecimal maxPrice,
-                                           String conditionLevel,
+                                           Integer conditionLevel,
                                            Boolean isDeposit,
                                            String location,
                                            PageQuery query) {
         LambdaQueryChainWrapper<Items> wrapper = lambdaQuery();
 
         if (StringUtils.isNotBlank(keyword)) {
-            wrapper.and(w -> w.like(Items::getTitle, keyword).or().like(Items::getDescription, keyword));
+            wrapper.and(w -> w.like(Items::getTitle, keyword)
+                    .or()
+                    .like(Items::getDescription, keyword));
         }
         if (categoryId != null && categoryId > 0) {
             wrapper.eq(Items::getCategoryId, categoryId);
@@ -93,8 +97,9 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) > 0) {
             wrapper.le(Items::getPrice, maxPrice);
         }
-        if (StringUtils.isNotBlank(conditionLevel)) {
-            wrapper.eq(Items::getConditionLevel, conditionLevel);
+        if (conditionLevel != null) {
+            ConditionLevel conditionLevel1 = ConditionLevel.of(conditionLevel);
+            wrapper.eq(Items::getConditionLevel, conditionLevel1);
         }
         if (isDeposit != null && isDeposit) {
             wrapper.eq(Items::getDeposit, BigDecimal.ZERO);
@@ -126,7 +131,8 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
     @Override
     @Transactional
     public boolean delete(Long id) {
-        return lambdaUpdate().eq(Items::getId, id).remove();
+        return lambdaUpdate().eq(Items::getId, id)
+                .remove();
     }
 
     @Override
@@ -173,13 +179,16 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
 
     @Override
     public List<ItemsVO> getByUserId(Long userId) {
-        List<Items> items = lambdaQuery().eq(Items::getOwnerId, userId).orderByDesc(Items::getCreatedAt).list();
+        List<Items> items = lambdaQuery().eq(Items::getOwnerId, userId)
+                .orderByDesc(Items::getCreatedAt)
+                .list();
         return convertToVOList(items);
     }
 
     @Override
     public Object getStats() {
-        List<Items> allItems = lambdaQuery().select(Items::getStatus, Items::getCategoryId).list();
+        List<Items> allItems = lambdaQuery().select(Items::getStatus, Items::getCategoryId)
+                .list();
         long totalCount = allItems.size();
 
         Map<ItemStatus, Long> statusCount = allItems.stream()
@@ -221,7 +230,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         entity.setDescription(dto.getDescription());
         entity.setCategoryId(dto.getCategoryId());
 
-        entity.setConditionLevel(dto.getConditionLevel());
+        entity.setConditionLevel(ConditionLevel.of(dto.getConditionLevel()));
 
         if (CollUtil.isNotEmpty(dto.getImages())) {
             entity.setImages(JSONUtil.toJsonStr(dto.getImages()));
@@ -229,7 +238,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
 
         entity.setPrice(dto.getPrice());
 
-        entity.setBillingType(dto.getBillingType());
+        entity.setBillingType(BillingType.of(dto.getBillingType()));
 
         entity.setDeposit(dto.getDeposit());
         entity.setIsNegotiable(dto.getIsNegotiable());
@@ -245,13 +254,19 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
             return List.of();
         }
 
-        Set<Long> userIds = items.stream().map(Items::getOwnerId).collect(Collectors.toSet());
-        Set<Long> categoryIds = items.stream().map(Items::getCategoryId).collect(Collectors.toSet());
+        Set<Long> userIds = items.stream()
+                .map(Items::getOwnerId)
+                .collect(Collectors.toSet());
+        Set<Long> categoryIds = items.stream()
+                .map(Items::getCategoryId)
+                .collect(Collectors.toSet());
 
         Map<Long, UserDTO> userMap = getUserMap(userIds);
         Map<Long, Categories> categoryMap = getCategoryMap(categoryIds);
 
-        return items.stream().map(item -> convertToVO(item, userMap, categoryMap)).collect(Collectors.toList());
+        return items.stream()
+                .map(item -> convertToVO(item, userMap, categoryMap))
+                .collect(Collectors.toList());
     }
 
     private ItemsVO convertToVO(Items item, Map<Long, UserDTO> userMap, Map<Long, Categories> categoryMap) {
@@ -263,7 +278,8 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         vo.setTitle(item.getTitle());
         vo.setDescription(item.getDescription());
         vo.setCategoryId(item.getCategoryId());
-        vo.setConditionLevel(item.getConditionLevel());
+        vo.setConditionLevel(item.getConditionLevel()
+                .getDesc());
         vo.setPrice(item.getPrice());
         vo.setBillingType(item.getBillingType());
         vo.setDeposit(item.getDeposit());
@@ -305,7 +321,8 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
             if (CollUtil.isEmpty(userDTOS)) {
                 return Map.of();
             }
-            return userDTOS.stream().collect(Collectors.toMap(UserDTO::getId, Function.identity(), (k1, k2) -> k1));
+            return userDTOS.stream()
+                    .collect(Collectors.toMap(UserDTO::getId, Function.identity(), (k1, k2) -> k1));
         } catch (Exception e) {
             log.error("远程调用查询用户信息失败", e);
             return Map.of();
@@ -313,7 +330,9 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
     }
 
     private Map<Long, Categories> getCategoryMap(Set<Long> categoryIds) {
-        Set<Long> validIds = categoryIds.stream().filter(id -> id != null && id > 0).collect(Collectors.toSet());
+        Set<Long> validIds = categoryIds.stream()
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
         if (CollUtil.isEmpty(validIds)) {
             return Map.of();
         }

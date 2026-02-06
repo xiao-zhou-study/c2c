@@ -29,7 +29,7 @@ public enum StatsEnum {
         this.description = description;
         this.dbField = dbField;
     }
-    
+
     /**
      * 支持通过 Integer形式的数字进行反序列化
      */

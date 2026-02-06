@@ -90,9 +90,19 @@ public class AuthTokensServiceImpl extends ServiceImpl<AuthTokensMapper, AuthTok
         // 删除jti
         jwtTool.cleanJtiCache();
         // 删除客户端refresh cookie
-        WebUtils.cookieBuilder().name(JwtConstants.REFRESH_HEADER).value("").maxAge(0).httpOnly(true).build();
+        WebUtils.cookieBuilder()
+                .name(JwtConstants.REFRESH_HEADER)
+                .value("")
+                .maxAge(0)
+                .httpOnly(true)
+                .build();
         // 删除管理端refresh cookie
-        WebUtils.cookieBuilder().name(JwtConstants.ADMIN_REFRESH_HEADER).value("").maxAge(0).httpOnly(true).build();
+        WebUtils.cookieBuilder()
+                .name(JwtConstants.ADMIN_REFRESH_HEADER)
+                .value("")
+                .maxAge(0)
+                .httpOnly(true)
+                .build();
     }
 
     @Override

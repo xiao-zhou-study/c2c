@@ -58,7 +58,8 @@ public class JwtTool {
      */
     public String createRefreshToken(LoginUserDTO userDetail) {
         // 1.生成 JTI
-        String jti = UUID.randomUUID().toString(true);
+        String jti = UUID.randomUUID()
+                .toString(true);
         // 2.生成jwt
         // 2.1.如果是记住我，则有效期7天，否则30分钟
         Duration ttl = BooleanUtils.isTrue(userDetail.getRememberMe()) ? JwtConstants.JWT_REMEMBER_ME_TTL : JWT_REFRESH_TTL;
@@ -70,7 +71,8 @@ public class JwtTool {
                 .setSigner(jwtSigner)
                 .sign();
         // 3.缓存jti，有效期与token一致，过期或删除JTI后，对应的refresh-token失效
-        stringRedisTemplate.opsForValue().set(JwtConstants.JWT_REDIS_KEY_PREFIX + userDetail.getUserId(), jti, ttl);
+        stringRedisTemplate.opsForValue()
+                .set(JwtConstants.JWT_REDIS_KEY_PREFIX + userDetail.getUserId(), jti, ttl);
         return token;
     }
 
@@ -86,7 +88,8 @@ public class JwtTool {
         // 2.校验并解析jwt
         JWT jwt;
         try {
-            jwt = JWT.of(refreshToken).setSigner(jwtSigner);
+            jwt = JWT.of(refreshToken)
+                    .setSigner(jwtSigner);
         } catch (Exception e) {
             throw new BadRequestException(400, AuthErrorInfo.Msg.INVALID_TOKEN, e);
         }
@@ -97,7 +100,8 @@ public class JwtTool {
         }
         // 3.校验是否过期
         try {
-            JWTValidator.of(jwt).validateDate();
+            JWTValidator.of(jwt)
+                    .validateDate();
         } catch (ValidateException e) {
             throw new BadRequestException(400, AuthErrorInfo.Msg.EXPIRED_TOKEN);
         }
@@ -119,7 +123,8 @@ public class JwtTool {
         }
 
         // 6.JTI校验
-        String jti = stringRedisTemplate.opsForValue().get(JwtConstants.JWT_REDIS_KEY_PREFIX + userDTO.getUserId());
+        String jti = stringRedisTemplate.opsForValue()
+                .get(JwtConstants.JWT_REDIS_KEY_PREFIX + userDTO.getUserId());
         if (!StringUtils.equals(jti, jtiPayload.toString())) {
             // jti不一致
             throw new BadRequestException(400, AuthErrorInfo.Msg.INVALID_TOKEN);

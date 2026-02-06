@@ -92,7 +92,7 @@ public class UserController {
 
     @ApiOperation("修改用户统计数据")
     @PutMapping("/{userId}/stats")
-    public void updateUserStats(@PathVariable("userId") Long userId, @RequestParam StatsEnum statsEnum) {
+    public void updateUserStats(@PathVariable("userId") Long userId, @RequestParam Integer statsEnum) {
         usersService.updateUserStats(userId, statsEnum);
     }
 }

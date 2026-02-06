@@ -73,7 +73,8 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Override
     public void saveUser(UserRegisterDTO dto) {
         String studentId = dto.getStudentId();
-        Users user = lambdaQuery().eq(Users::getStudentId, studentId).one();
+        Users user = lambdaQuery().eq(Users::getStudentId, studentId)
+                .one();
         if (user != null) {
             throw new BadRequestException("用户已存在");
         }
@@ -128,7 +129,8 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
                         try {
                             Thread.sleep(2000L * attempt);
                         } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
+                            Thread.currentThread()
+                                    .interrupt();
                         }
                     }
                 }
@@ -154,13 +156,16 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         Users user;
         if (StrUtil.isNotBlank(email)) {
             // 使用邮箱登录
-            user = lambdaQuery().eq(Users::getEmail, email).one();
+            user = lambdaQuery().eq(Users::getEmail, email)
+                    .one();
         } else if (StrUtil.isNotBlank(studentId)) {
             // 使用学号登录
-            user = lambdaQuery().eq(Users::getStudentId, studentId).one();
+            user = lambdaQuery().eq(Users::getStudentId, studentId)
+                    .one();
         } else if (StrUtil.isNotBlank(phone)) {
             // 使用手机号登录
-            user = lambdaQuery().eq(Users::getPhone, phone).one();
+            user = lambdaQuery().eq(Users::getPhone, phone)
+                    .one();
         } else {
             throw new BadRequestException("邮箱、学号或手机号不能为空");
         }
@@ -190,18 +195,26 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Override
     public List<UserDTO> queryUserByIds(List<Long> ids) {
-        List<Users> users = lambdaQuery().in(Users::getId, ids).eq(Users::getStatus, 1).list();
-        List<UserProfiles> userProfiles = userProfilesService.lambdaQuery().in(UserProfiles::getUserId, ids).list();
+        List<Users> users = lambdaQuery().in(Users::getId, ids)
+                .eq(Users::getStatus, 1)
+                .list();
+        List<UserProfiles> userProfiles = userProfilesService.lambdaQuery()
+                .in(UserProfiles::getUserId, ids)
+                .list();
 
         if (userProfiles == null) {
-            return users.stream().map(Users::toDTO).toList();
+            return users.stream()
+                    .map(Users::toDTO)
+                    .toList();
         }
         Map<Long, UserProfiles> userProfilesMap = userProfiles.stream()
                 .collect(Collectors.toMap(UserProfiles::getUserId, Function.identity()));
-        return users.stream().map(user -> {
-            UserProfiles userProfiles1 = userProfilesMap.getOrDefault(user.getId(), new UserProfiles());
-            return convertToUserDTO(user, userProfiles1);
-        }).collect(Collectors.toList());
+        return users.stream()
+                .map(user -> {
+                    UserProfiles userProfiles1 = userProfilesMap.getOrDefault(user.getId(), new UserProfiles());
+                    return convertToUserDTO(user, userProfiles1);
+                })
+                .collect(Collectors.toList());
     }
 
     private UserDTO convertToUserDTO(Users user, UserProfiles userProfiles1) {
@@ -247,7 +260,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (user == null) {
             throw new BadRequestException("用户不存在");
         }
-        UserProfiles userProfiles = userProfilesService.lambdaQuery().eq(UserProfiles::getUserId, userId).one();
+        UserProfiles userProfiles = userProfilesService.lambdaQuery()
+                .eq(UserProfiles::getUserId, userId)
+                .one();
         if (userProfiles == null) {
             userProfiles = new UserProfiles();
         }
@@ -258,7 +273,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Transactional
     public UserDTO updateUser(Long userId, UserDTO userDTO) {
         Users user = getById(userId);
-        UserProfiles userProfiles = userProfilesService.lambdaQuery().eq(UserProfiles::getUserId, userId).one();
+        UserProfiles userProfiles = userProfilesService.lambdaQuery()
+                .eq(UserProfiles::getUserId, userId)
+                .one();
         if (userProfiles == null) {
             userProfiles = new UserProfiles();
             userProfiles.setUserId(userId);
@@ -324,7 +341,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Override
     public UserStatsVO getUserStats(Long userId) {
-        UserStats stats = userStatsService.lambdaQuery().eq(UserStats::getUserId, userId).one();
+        UserStats stats = userStatsService.lambdaQuery()
+                .eq(UserStats::getUserId, userId)
+                .one();
         if (stats == null) {
             // 如果不存在统计信息，返回空的统计对象
             return new UserStatsVO();
@@ -376,7 +395,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         }
 
         // 更新用户资料中的真实姓名
-        UserProfiles profile = userProfilesService.lambdaQuery().eq(UserProfiles::getUserId, currentUserId).one();
+        UserProfiles profile = userProfilesService.lambdaQuery()
+                .eq(UserProfiles::getUserId, currentUserId)
+                .one();
 
         long now = System.currentTimeMillis();
         if (profile == null) {
@@ -418,26 +439,35 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (CollUtil.isEmpty(records)) {
             return PageDTO.empty(page);
         }
-        Set<Long> userIds = records.stream().map(Users::getId).collect(Collectors.toSet());
-        List<UserProfiles> userProfiles = userProfilesService.lambdaQuery().in(UserProfiles::getUserId, userIds).list();
+        Set<Long> userIds = records.stream()
+                .map(Users::getId)
+                .collect(Collectors.toSet());
+        List<UserProfiles> userProfiles = userProfilesService.lambdaQuery()
+                .in(UserProfiles::getUserId, userIds)
+                .list();
 
         List<UserDTO> list;
         if (userProfiles == null) {
-            list = records.stream().map(Users::toDTO).toList();
+            list = records.stream()
+                    .map(Users::toDTO)
+                    .toList();
             return PageDTO.of(page, list);
         }
         Map<Long, UserProfiles> userProfilesMap = userProfiles.stream()
                 .collect(Collectors.toMap(UserProfiles::getUserId, Function.identity()));
-        list = records.stream().map(user -> {
-            UserProfiles userProfiles1 = userProfilesMap.getOrDefault(user.getId(), new UserProfiles());
-            return convertToUserDTO(user, userProfiles1);
-        }).collect(Collectors.toList());
+        list = records.stream()
+                .map(user -> {
+                    UserProfiles userProfiles1 = userProfilesMap.getOrDefault(user.getId(), new UserProfiles());
+                    return convertToUserDTO(user, userProfiles1);
+                })
+                .collect(Collectors.toList());
         return PageDTO.of(page, list);
     }
 
     @Override
-    public void updateUserStats(Long userId, StatsEnum statsEnum) {
-        String dbField = statsEnum.getDbField();
+    public void updateUserStats(Long userId, Integer statsEnum) {
+        StatsEnum statsEnum1 = StatsEnum.of(statsEnum);
+        String dbField = statsEnum1.getDbField();
         userStatsService.lambdaUpdate()
                 .eq(UserStats::getUserId, userId)
                 .setSql(dbField + " = " + dbField + " + 1")

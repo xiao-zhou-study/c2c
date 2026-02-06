@@ -27,8 +27,6 @@ spring:
             - Path=/ai/**
           filters:
             - PreserveHostHeader
-            - StripPrefix=1
-
         - id: as
           uri: lb://auth-service
           predicates:

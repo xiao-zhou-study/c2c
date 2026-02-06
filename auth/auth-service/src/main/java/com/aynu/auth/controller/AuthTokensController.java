@@ -47,18 +47,19 @@ public class AuthTokensController {
                                @CookieValue(value = JwtConstants.ADMIN_REFRESH_HEADER,
                                        required = false) String adminToken) {
         if (studentToken == null && adminToken == null) {
-            throw new BadRequestException("登录超时");
+            throw new BadRequestException("用户未登录");
         }
         String clientType = WebUtils.getHeader("X-Client-Type");
         if (clientType == null) {
-            throw new BadRequestException("登录超时");
+            throw new BadRequestException("Client-Type不能为空");
         }
         // 通过自定义请求头区分管理端和客户端：admin是管理端，client是客户端
         String token = "admin".equals(clientType) ? adminToken : studentToken;
         if (token == null) {
-            throw new BadRequestException("登录超时");
+            throw new BadRequestException("用户未登录");
         }
-        return authTokensService.refreshToken(WebUtils.cookieBuilder().decode(token));
+        return authTokensService.refreshToken(WebUtils.cookieBuilder()
+                .decode(token));
     }
 }
 

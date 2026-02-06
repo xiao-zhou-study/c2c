@@ -57,8 +57,7 @@ public class ItemsController {
 
     @ApiOperation("批量更新物品状态")
     @PutMapping("/batch/status")
-    public Boolean batchUpdateStatus(@RequestParam List<Long> ids,
-                                     @RequestParam Integer status) {
+    public Boolean batchUpdateStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
         return itemsService.batchUpdateStatus(ids, status);
     }
 
@@ -69,7 +68,7 @@ public class ItemsController {
                                            @RequestParam(required = false) Long status,
                                            @RequestParam(required = false) BigDecimal minPrice,
                                            @RequestParam(required = false) BigDecimal maxPrice,
-                                           @RequestParam(required = false) String conditionLevel,
+                                           @RequestParam(required = false) Integer conditionLevel,
                                            @RequestParam(required = false) Boolean isDeposit,
                                            @RequestParam(required = false) String location,
                                            PageQuery query) {

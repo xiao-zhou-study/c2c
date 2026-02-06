@@ -22,6 +22,7 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 添加物品
+     *
      * @param itemsDTO 物品信息DTO
      * @return 物品ID
      */
@@ -29,7 +30,8 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 更新物品信息
-     * @param id 物品ID
+     *
+     * @param id       物品ID
      * @param itemsDTO 物品信息DTO
      * @return 是否成功
      */
@@ -37,6 +39,7 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 删除物品
+     *
      * @param id 物品ID
      * @return 是否成功
      */
@@ -44,6 +47,7 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 根据ID获取物品详情
+     *
      * @param id 物品ID
      * @return 物品详情
      */
@@ -51,7 +55,8 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 更新物品状态
-     * @param id 物品ID
+     *
+     * @param id     物品ID
      * @param status 状态值
      * @param remark 操作备注
      * @return 是否成功
@@ -60,7 +65,8 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 批量更新物品状态
-     * @param ids 物品ID列表
+     *
+     * @param ids    物品ID列表
      * @param status 状态值
      * @return 是否成功
      */
@@ -68,15 +74,16 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 根据分类分页查询物品
-     * @param keyword 关键词
-     * @param categoryId 分类ID
-     * @param status 状态
-     * @param minPrice 最低价格
-     * @param maxPrice 最高价格
+     *
+     * @param keyword        关键词
+     * @param categoryId     分类ID
+     * @param status         状态
+     * @param minPrice       最低价格
+     * @param maxPrice       最高价格
      * @param conditionLevel 成色
-     * @param isDeposit 是否需要押金
-     * @param location 位置
-     * @param query 分页查询条件
+     * @param isDeposit      是否需要押金
+     * @param location       位置
+     * @param query          分页查询条件
      * @return 分页结果
      */
     PageDTO<ItemsVO> listByCategory(String keyword,
@@ -84,13 +91,14 @@ public interface IItemsService extends IService<Items> {
                                     Long status,
                                     BigDecimal minPrice,
                                     BigDecimal maxPrice,
-                                    String conditionLevel,
+                                    Integer conditionLevel,
                                     Boolean isDeposit,
                                     String location,
                                     PageQuery query);
 
     /**
      * 根据用户ID获取物品列表
+     *
      * @param userId 用户ID
      * @return 物品列表
      */
@@ -98,12 +106,14 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 获取物品统计信息
+     *
      * @return 统计信息
      */
     Object getStats();
 
     /**
      * 获取推荐物品
+     *
      * @param limit 数量限制
      * @return 推荐物品列表
      */
@@ -111,7 +121,8 @@ public interface IItemsService extends IService<Items> {
 
     /**
      * 获取热门物品
-     * @param days 天数
+     *
+     * @param days  天数
      * @param limit 数量限制
      * @return 热门物品列表
      */

@@ -40,7 +40,7 @@ public class S3FilesController {
     @ApiOperation("批量上传文件")
     @PostMapping(value = "/upload/batch", consumes = "multipart/form-data")
     public List<String> uploadBatch(@ApiParam(value = "文件列表",
-            required = true) @RequestParam("files") MultipartFile[] files,
+                                            required = true) @RequestParam("files") MultipartFile[] files,
                                     @ApiParam(value = "业务模块",
                                             defaultValue = "common") @RequestParam(value = "module",
                                             defaultValue = "common") String module) throws IOException {
