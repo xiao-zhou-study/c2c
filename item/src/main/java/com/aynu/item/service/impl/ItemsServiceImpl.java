@@ -8,7 +8,10 @@ import com.aynu.api.dto.user.UserDTO;
 import com.aynu.api.enums.item.BillingType;
 import com.aynu.api.enums.item.ConditionLevel;
 import com.aynu.api.enums.item.ItemStatus;
+import com.aynu.api.enums.user.StatsEnum;
+import com.aynu.common.autoconfigure.mq.RabbitMqHelper;
 import com.aynu.common.domain.dto.PageDTO;
+import com.aynu.common.domain.dto.UpdateStatsDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.common.utils.StringUtils;
@@ -34,6 +37,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.aynu.common.constants.MqConstants.Exchange.USER_EXCHANGE;
+import static com.aynu.common.constants.MqConstants.Key.USER_UPDATE_STATS;
+
 /**
  * <p>
  * 物品信息表 服务实现类
@@ -49,6 +55,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
 
     private final UserClient userClient;
     private final ICategoriesService categoriesService;
+    private final RabbitMqHelper rabbitMqHelper;
 
     @Override
     public Long add(ItemsDTO itemsDTO) {
@@ -65,6 +72,16 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         item.setUpdatedAt(System.currentTimeMillis());
 
         save(item);
+
+        // 发送消息更新用户发布物品数量
+        rabbitMqHelper.send(USER_EXCHANGE,
+                USER_UPDATE_STATS,
+                UpdateStatsDTO.builder()
+                        .userId(userId)
+                        .type(StatsEnum.ITEMS_PUBLISHED.getValue())
+                        .isAdd(true)
+                        .build());
+
         return item.getId();
     }
 
@@ -131,6 +148,18 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
     @Override
     @Transactional
     public boolean delete(Long id) {
+        log.info("Deleting item with id: {}", id);
+
+        Long userId = UserContext.getUser();
+
+        rabbitMqHelper.send(USER_EXCHANGE,
+                USER_UPDATE_STATS,
+                UpdateStatsDTO.builder()
+                        .userId(userId)
+                        .type(StatsEnum.ITEMS_PUBLISHED.getValue())
+                        .isAdd(false)
+                        .build());
+
         return lambdaUpdate().eq(Items::getId, id)
                 .remove();
     }

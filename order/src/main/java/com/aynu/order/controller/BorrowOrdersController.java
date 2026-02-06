@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * @since 2025-12-23
  */
 @RestController
-@RequestMapping("")
+@RequestMapping("/orders")
 @RequiredArgsConstructor
 @Api(tags = "订单管理接口")
 public class BorrowOrdersController {

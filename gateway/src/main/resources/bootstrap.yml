@@ -12,6 +12,8 @@ spring:
     nacos:
       config:
         file-extension: yaml
+        timeout: 10000
+        config-retry-time: 3000
         shared-configs: # 共享配置
           - data-id: shared-spring.yaml
             refresh: false

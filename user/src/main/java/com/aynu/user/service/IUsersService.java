@@ -46,5 +46,5 @@ public interface IUsersService extends IService<Users> {
 
     PageDTO<UserDTO> queryUserPage(PageQuery query, String keyword, Integer status);
 
-    void updateUserStats(Long userId, Integer statsEnum);
+    void updateUserStats(Long userId, Integer statsEnum, boolean isAdd);
 }

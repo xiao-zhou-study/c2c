@@ -9,6 +9,8 @@ spring:
         namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
         group: DEFAULT_GROUP
         file-extension: yaml
+        timeout: 10000
+        config-retry-time: 3000
   config:
     import:
       - optional:nacos:shared-spring.yaml?refresh=false

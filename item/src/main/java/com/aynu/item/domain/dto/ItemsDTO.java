@@ -1,7 +1,5 @@
 package com.aynu.item.domain.dto;
 
-import com.aynu.api.enums.item.BillingType;
-import com.aynu.api.enums.item.ConditionLevel;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;

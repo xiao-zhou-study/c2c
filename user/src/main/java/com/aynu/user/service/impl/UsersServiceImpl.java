@@ -345,8 +345,16 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
                 .eq(UserStats::getUserId, userId)
                 .one();
         if (stats == null) {
-            // 如果不存在统计信息，返回空的统计对象
-            return new UserStatsVO();
+            stats = new UserStats();
+            stats.setUserId(userId);
+            stats.setItemsPublished(0);
+            stats.setItemsBorrowed(0);
+            stats.setItemsLent(0);
+            stats.setTotalRatings(0);
+            stats.setAverageRating(BigDecimal.ZERO);
+            stats.setCreatedAt(System.currentTimeMillis());
+            stats.setUpdatedAt(System.currentTimeMillis());
+            userStatsService.save(stats);
         }
         return BeanUtil.toBean(stats, UserStatsVO.class);
     }
@@ -465,12 +473,12 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     }
 
     @Override
-    public void updateUserStats(Long userId, Integer statsEnum) {
+    public void updateUserStats(Long userId, Integer statsEnum, boolean isIncrement) {
         StatsEnum statsEnum1 = StatsEnum.of(statsEnum);
         String dbField = statsEnum1.getDbField();
         userStatsService.lambdaUpdate()
                 .eq(UserStats::getUserId, userId)
-                .setSql(dbField + " = " + dbField + " + 1")
+                .setSql(dbField + " = " + dbField + (isIncrement ? " + 1" : " - 1"))
                 .update();
     }
 

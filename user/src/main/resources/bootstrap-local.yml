@@ -13,6 +13,8 @@ spring:
         namespace: 87d67ed7-fad5-439c-96c8-28da38133d98
         username: nacos
         password: zhoujiadayuan
+        timeout: 10000
+        config-retry-time: 3000
 logging:
   level:
     com.aynu: debug

@@ -1028,23 +1028,23 @@
 
 **Request Body**
 
-| 字段名 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- |
-| id | Long | 否 | 物品ID（新增时为 null，更新时必填） |
-| title | String | 是 | 物品标题（最大 100 字符） |
-| description | String | 是 | 物品详细描述 |
-| categoryId | Long | 是 | 分类ID |
-| conditionLevel | Integer | 是 | 物品成色：0-全新、1-九成新等 |
+| 字段名 | 字段类型          | 是否必填 | 字段解释 |
+| --- |---------------| --- | --- |
+| id | Long          | 否 | 物品ID（新增时为 null，更新时必填） |
+| title | String        | 是 | 物品标题（最大 100 字符） |
+| description | String        | 是 | 物品详细描述 |
+| categoryId | Long          | 是 | 分类ID |
+| conditionLevel | Integer       | 是 | 物品成色：0-全新、1-九成新等 |
 | images | Array[String] | 是 | 图片 URL 列表 |
-| price | Number | 是 | 租赁单价（需大于 0.01） |
-| billingType | String | 是 | 计费类型：PER_DAY(天), PER_WEEK(周), PER_MONTH(月) |
-| deposit | Number | 是 | 押金金额（需大于等于 0） |
-| isNegotiable | Boolean | 是 | 是否可议价 |
-| minBorrowDays | Integer | 否 | 最小租赁天数（默认为 1） |
-| maxBorrowDays | Integer | 否 | 最大租赁天数 |
-| location | String | 是 | 校区/区域位置 |
-| address | String | 否 | 详细地址 |
-| borrowConditions | String | 否 | 借用条件限制说明 |
+| price | Number        | 是 | 租赁单价（需大于 0.01） |
+| billingType | Integer       | 是 | 计费类型：PER_DAY(天), PER_WEEK(周), PER_MONTH(月) |
+| deposit | Number        | 是 | 押金金额（需大于等于 0） |
+| isNegotiable | Boolean       | 是 | 是否可议价 |
+| minBorrowDays | Integer       | 否 | 最小租赁天数（默认为 1） |
+| maxBorrowDays | Integer       | 否 | 最大租赁天数 |
+| location | String        | 是 | 校区/区域位置 |
+| address | String        | 否 | 详细地址 |
+| borrowConditions | String        | 否 | 借用条件限制说明 |
 
 **Returns**
 
