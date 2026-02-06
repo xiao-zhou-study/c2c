@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
+import java.util.Objects;
+
 /**
  * 订单状态枚举
  */
@@ -17,10 +19,6 @@ public enum OrderStatus {
     CANCELLED(5, "已取消"),
     REJECTED(6, "已拒绝");
 
-    /**
-     * @EnumValue: 标记存储到数据库的值
-     * @JsonValue: 标记前端 API 序列化输出的值
-     */
     @EnumValue
     @JsonValue
     private final int value;
@@ -33,7 +31,16 @@ public enum OrderStatus {
     }
 
     /**
-     * 根据数值获取对应的枚举（可选：用于手动转换）
+     * 核心逻辑：判断当前状态是否允许取消
+     * 规则：只有在“申请中”或“已确认（尚未取走物品）”时可以取消
+     */
+    public static boolean canCancel(Integer statusValue) {
+        if (statusValue == null) return false;
+        return Objects.equals(statusValue, APPLYING.value) || Objects.equals(statusValue, CONFIRMED.value);
+    }
+
+    /**
+     * 根据数值获取对应的枚举
      */
     public static OrderStatus of(Integer value) {
         if (value == null) return null;

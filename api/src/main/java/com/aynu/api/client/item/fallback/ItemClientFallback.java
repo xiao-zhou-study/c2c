@@ -10,7 +10,7 @@ public class ItemClientFallback implements FallbackFactory<ItemClient> {
 
     @Override
     public ItemClient create(Throwable cause) {
-        log.error("查询学习服务异常", cause);
+        log.error("查询物品服务异常", cause);
         return new ItemClient() {
 
             @Override

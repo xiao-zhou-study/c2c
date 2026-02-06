@@ -1,7 +1,5 @@
 package com.aynu.api.dto.item;
 
-import com.aynu.api.enums.item.BillingType;
-import com.aynu.api.enums.item.ItemStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -57,7 +55,7 @@ public class ItemsVO implements Serializable {
     /**
      * 物品成色：对应枚举 ConditionLevel (0-全新, 1-九成新, 2-八成新)
      */
-    private String conditionLevel;
+    private Integer conditionLevel;
 
     /**
      * 物品图片URL集合
@@ -73,7 +71,7 @@ public class ItemsVO implements Serializable {
      * 计费类型：对应枚举 BillingType (PER_DAY, PER_WEEK, PER_MONTH)
      * Jackson 会根据枚举中的 @JsonValue 序列化为 "per_day" 等字符串
      */
-    private BillingType billingType;
+    private Integer billingType;
 
     /**
      * 押金金额（元）
@@ -113,7 +111,7 @@ public class ItemsVO implements Serializable {
     /**
      * 物品状态：对应枚举 ItemStatus (1-可借用, 2-已借出, 3-已下架)
      */
-    private ItemStatus status;
+    private Integer status;
 
     /**
      * 浏览次数

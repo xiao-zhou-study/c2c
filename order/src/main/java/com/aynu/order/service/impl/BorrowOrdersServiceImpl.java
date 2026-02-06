@@ -1,6 +1,7 @@
 package com.aynu.order.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aynu.api.client.item.ItemClient;
 import com.aynu.api.client.user.UserClient;
@@ -14,12 +15,10 @@ import com.aynu.common.utils.UserContext;
 import com.aynu.order.domain.dto.OrderActionDTO;
 import com.aynu.order.domain.dto.OrderCreateDTO;
 import com.aynu.order.domain.po.BorrowOrders;
-import com.aynu.order.domain.po.OrderLogs;
 import com.aynu.order.domain.vo.BorrowOrderVO;
 import com.aynu.order.enums.OrderStatus;
 import com.aynu.order.mapper.BorrowOrdersMapper;
 import com.aynu.order.service.IBorrowOrdersService;
-import com.aynu.order.service.IOrderLogsService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -28,86 +27,62 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 借用订单服务实现类
+ * 借用订单服务实现类 - 重构版
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, BorrowOrders> implements IBorrowOrdersService {
 
-    private final IOrderLogsService orderLogsService;
     private final UserClient userClient;
     private final ItemClient itemClient;
+
+    private static final long DAY_MS = 24 * 60 * 60 * 1000L;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createOrder(OrderCreateDTO createDTO) {
         Long currentUserId = UserContext.getUser();
 
-        ItemsVO item = itemClient.getById(createDTO.getItemId());
-        if (item == null) {
-            throw new BadRequestException("物品不存在");
-        }
+        // 1. 获取并校验物品
+        ItemsVO item = Optional.ofNullable(itemClient.getById(createDTO.getItemId()))
+                .orElseThrow(() -> new BadRequestException("物品不存在"));
 
-        // 校验物品状态
-        if (item.getStatus() != ItemStatus.AVAILABLE) {
+        if (!Objects.equals(item.getStatus(), ItemStatus.AVAILABLE.getValue())) {
             throw new BadRequestException("该物品当前不可借用");
         }
-
-        if (item.getUserId().equals(currentUserId)) {
+        if (Objects.equals(item.getUserId(), currentUserId)) {
             throw new BadRequestException("不能借用自己发布的物品");
         }
 
+        // 2. 构建订单
         BigDecimal price = item.getPrice();
-        BigDecimal deposit = item.getDeposit() != null ? item.getDeposit() : BigDecimal.ZERO;
+        BigDecimal deposit = Objects.requireNonNullElse(item.getDeposit(), BigDecimal.ZERO);
         BigDecimal totalAmount = price.multiply(BigDecimal.valueOf(createDTO.getBorrowDays()));
 
-        BorrowOrders order = new BorrowOrders();
-        order.setItemId(createDTO.getItemId());
-        order.setBorrowerId(currentUserId);
-        order.setLenderId(item.getUserId());
-        order.setTitle(item.getTitle());
-        order.setPrice(price);
-        // 直接设置枚举对象，MyBatis Plus 会处理映射
-        order.setBillingType(item.getBillingType());
-        order.setDeposit(deposit);
-        order.setBorrowDays(createDTO.getBorrowDays());
-        order.setTotalAmount(totalAmount);
-        order.setPurpose(createDTO.getPurpose());
-
-        // 设置初始状态为：申请中
-        order.setStatus(OrderStatus.APPLYING);
-
-        long now = System.currentTimeMillis();
-        order.setCreatedAt(now);
-        order.setUpdatedAt(now);
+        BorrowOrders order = BorrowOrders.builder()
+                .itemId(createDTO.getItemId())
+                .borrowerId(currentUserId)
+                .lenderId(item.getUserId())
+                .title(item.getTitle())
+                .price(price)
+                .billingType(item.getBillingType())
+                .deposit(deposit)
+                .borrowDays(createDTO.getBorrowDays())
+                .totalAmount(totalAmount)
+                .purpose(createDTO.getPurpose())
+                .status(OrderStatus.APPLYING.getValue())
+                .createdAt(System.currentTimeMillis())
+                .updatedAt(System.currentTimeMillis())
+                .build();
 
         save(order);
-        this.addOrderLog(order.getId(), currentUserId, "提交借用申请", createDTO.getPurpose());
         return order.getId();
-    }
-
-    @Override
-    public PageDTO<BorrowOrderVO> listOrders(OrderStatus status,
-                                             Long itemId,
-                                             Long borrowerId,
-                                             Long lenderId,
-                                             String type,
-                                             PageQuery query) {
-        return null;
-    }
-
-    @Override
-    public boolean updateOrder(Long orderId, Map<String, Object> updates) {
-        return false;
     }
 
     @Override
@@ -118,220 +93,196 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                                              String type,
                                              PageQuery query) {
         Long currentUserId = UserContext.getUser();
-        var wrapper = lambdaQuery();
 
-        if (status != null && status > 0) {
-            wrapper.eq(BorrowOrders::getStatus, status);
+        // 1. 分页查询 PO
+        Page<BorrowOrders> page = lambdaQuery().eq(status != null && status > 0, BorrowOrders::getStatus, status)
+                .eq(itemId != null && itemId > 0, BorrowOrders::getItemId, itemId)
+                .eq(borrowerId != null && borrowerId > 0, BorrowOrders::getBorrowerId, borrowerId)
+                .eq(lenderId != null && lenderId > 0, BorrowOrders::getLenderId, lenderId)
+                .apply(StrUtil.equals(type, "borrow"), "borrower_id = {0}", currentUserId)
+                .apply(StrUtil.equals(type, "lend"), "lender_id = {0}", currentUserId)
+                .orderByDesc(BorrowOrders::getCreatedAt)
+                .page(query.toMpPage());
+
+        if (CollUtil.isEmpty(page.getRecords())) {
+            return PageDTO.empty(page);
         }
-        // ... 其他过滤逻辑保持不变 ...
-        if (itemId != null && itemId > 0) wrapper.eq(BorrowOrders::getItemId, itemId);
-        if (borrowerId != null && borrowerId > 0) wrapper.eq(BorrowOrders::getBorrowerId, borrowerId);
-        if (lenderId != null && lenderId > 0) wrapper.eq(BorrowOrders::getLenderId, lenderId);
 
-        if (StrUtil.isNotBlank(type)) {
-            if ("borrow".equals(type)) wrapper.eq(BorrowOrders::getBorrowerId, currentUserId);
-            else if ("lend".equals(type)) wrapper.eq(BorrowOrders::getLenderId, currentUserId);
-        }
-
-        wrapper.orderByDesc(BorrowOrders::getCreatedAt);
-        Page<BorrowOrders> page = wrapper.page(query.toMpPage());
-        if (page.getRecords().isEmpty()) return PageDTO.empty(page);
-
-        List<BorrowOrderVO> list = page.getRecords().stream().map(this::convertToVO).collect(Collectors.toList());
-        return PageDTO.of(page, list);
+        // 2. 批量转换 VO 并填充用户信息（解决 N+1 问题）
+        return PageDTO.of(page, convertToVOList(page.getRecords()));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean cancelOrder(OrderActionDTO actionDTO) {
-        Long currentUserId = UserContext.getUser();
         BorrowOrders order = checkOrderExists(actionDTO.getOrderId());
+        validateRole(order.getBorrowerId(), "只有借用人可以取消订单");
 
-        // 只有申请中或已确认的订单可以取消
-        if (order.getStatus() != OrderStatus.APPLYING && order.getStatus() != OrderStatus.CONFIRMED) {
+        if (!OrderStatus.canCancel(order.getStatus())) {
             throw new BadRequestException("当前状态不允许取消订单");
         }
 
-        if (!order.getBorrowerId().equals(currentUserId)) {
-            throw new BadRequestException("只有借用人可以取消订单");
-        }
-
-        order.setStatus(OrderStatus.CANCELLED);
-        order.setCancelReason(actionDTO.getReason());
-        order.setUpdatedAt(System.currentTimeMillis());
-
-        updateById(order);
-        addOrderLog(order.getId(), currentUserId, "取消订单", actionDTO.getReason());
-        return true;
+        return updateStatus(order, OrderStatus.CANCELLED, actionDTO.getReason());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean confirmOrder(Long orderId) {
-        Long currentUserId = UserContext.getUser();
         BorrowOrders order = checkOrderExists(orderId);
+        validateRole(order.getLenderId(), "只有出借人可以确认订单");
 
-        if (order.getStatus() != OrderStatus.APPLYING) {
+        if (!Objects.equals(order.getStatus(), OrderStatus.APPLYING.getValue())) {
             throw new BadRequestException("只有申请中的订单可以确认");
         }
 
-        if (!order.getLenderId().equals(currentUserId)) {
-            throw new BadRequestException("只有出借人可以确认订单");
-        }
-
-        order.setStatus(OrderStatus.CONFIRMED);
-        order.setUpdatedAt(System.currentTimeMillis());
-
-        updateById(order);
-        addOrderLog(order.getId(), currentUserId, "确认订单", null);
-        return true;
+        return updateStatus(order, OrderStatus.CONFIRMED, null);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean rejectOrder(OrderActionDTO actionDTO) {
-        Long currentUserId = UserContext.getUser();
         BorrowOrders order = checkOrderExists(actionDTO.getOrderId());
+        validateRole(order.getLenderId(), "只有出借人可以拒绝订单");
 
-        if (order.getStatus() != OrderStatus.APPLYING) {
+        if (!Objects.equals(order.getStatus(), OrderStatus.APPLYING.getValue())) {
             throw new BadRequestException("只有申请中的订单可以拒绝");
         }
 
-        if (!order.getLenderId().equals(currentUserId)) {
-            throw new BadRequestException("只有出借人可以拒绝订单");
-        }
-
-        order.setStatus(OrderStatus.REJECTED);
-        order.setCancelReason(actionDTO.getReason());
-        order.setUpdatedAt(System.currentTimeMillis());
-
-        updateById(order);
-        addOrderLog(order.getId(), currentUserId, "拒绝订单", actionDTO.getReason());
-        return true;
+        return updateStatus(order, OrderStatus.REJECTED, actionDTO.getReason());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean borrowItem(Long orderId) {
-        Long currentUserId = UserContext.getUser();
         BorrowOrders order = checkOrderExists(orderId);
+        validateRole(order.getLenderId(), "只有出借人可以确认借出");
 
-        if (order.getStatus() != OrderStatus.CONFIRMED) {
+        if (!Objects.equals(order.getStatus(), OrderStatus.CONFIRMED.getValue())) {
             throw new BadRequestException("只有已确认的订单可以开始借用");
         }
 
-        if (!order.getLenderId().equals(currentUserId)) {
-            throw new BadRequestException("只有出借人可以确认借出");
-        }
-
         long now = System.currentTimeMillis();
-        order.setStatus(OrderStatus.BORROWING);
+        order.setStatus(OrderStatus.BORROWING.getValue());
         order.setBorrowTime(now);
-        // 计算预计归还时间
-        order.setReturnTime(now + (order.getBorrowDays() * 24 * 60 * 60 * 1000L));
+        order.setReturnTime(now + (order.getBorrowDays() * DAY_MS));
         order.setUpdatedAt(now);
 
-        updateById(order);
-        addOrderLog(order.getId(), currentUserId, "确认借出", null);
-        return true;
+        return updateById(order);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean returnItem(Long orderId) {
-        Long currentUserId = UserContext.getUser();
         BorrowOrders order = checkOrderExists(orderId);
+        Long currentUserId = UserContext.getUser();
 
-        if (order.getStatus() != OrderStatus.BORROWING) {
-            throw new BadRequestException("只有借用中的订单可以归还");
-        }
-
-        if (!order.getBorrowerId().equals(currentUserId) && !order.getLenderId().equals(currentUserId)) {
+        if (!Objects.equals(currentUserId, order.getBorrowerId()) && !Objects.equals(currentUserId,
+                order.getLenderId())) {
             throw new BadRequestException("只有相关当事人可以确认归还");
         }
 
-        long now = System.currentTimeMillis();
-        order.setStatus(OrderStatus.RETURNED);
-        order.setActualReturnTime(now);
-        order.setUpdatedAt(now);
+        if (!Objects.equals(order.getStatus(), OrderStatus.BORROWING.getValue())) {
+            throw new BadRequestException("只有借用中的订单可以归还");
+        }
 
-        updateById(order);
-        addOrderLog(order.getId(), currentUserId, "确认归还", null);
-        return true;
+        order.setStatus(OrderStatus.RETURNED.getValue());
+        order.setActualReturnTime(System.currentTimeMillis());
+        order.setUpdatedAt(System.currentTimeMillis());
+
+        return updateById(order);
     }
 
     @Override
     public Map<String, Object> getBorrowStats(Long userId) {
-        if (userId == null) userId = UserContext.getUser();
+        final Long targetUid = userId != null ? userId : UserContext.getUser();
 
-        long totalBorrowed = lambdaQuery().eq(BorrowOrders::getBorrowerId, userId).count();
-        long borrowing = lambdaQuery().eq(BorrowOrders::getBorrowerId, userId)
-                .eq(BorrowOrders::getStatus, OrderStatus.BORROWING)
-                .count();
-        long returned = lambdaQuery().eq(BorrowOrders::getBorrowerId, userId)
-                .eq(BorrowOrders::getStatus, OrderStatus.RETURNED)
-                .count();
-
-        long totalLent = lambdaQuery().eq(BorrowOrders::getLenderId, userId).count();
-        long lending = lambdaQuery().eq(BorrowOrders::getLenderId, userId)
-                .eq(BorrowOrders::getStatus, OrderStatus.BORROWING)
-                .count();
-        long lentReturned = lambdaQuery().eq(BorrowOrders::getLenderId, userId)
-                .eq(BorrowOrders::getStatus, OrderStatus.RETURNED)
-                .count();
-
+        // 优化：建议在数据库层面使用分组查询优化，此处保持逻辑但简化写法
         return Map.of("totalBorrowed",
-                totalBorrowed,
+                getCount(targetUid, true, null),
                 "borrowing",
-                borrowing,
+                getCount(targetUid, true, OrderStatus.BORROWING),
                 "returned",
-                returned,
+                getCount(targetUid, true, OrderStatus.RETURNED),
                 "totalLent",
-                totalLent,
+                getCount(targetUid, false, null),
                 "lending",
-                lending,
+                getCount(targetUid, false, OrderStatus.BORROWING),
                 "lentReturned",
-                lentReturned);
+                getCount(targetUid, false, OrderStatus.RETURNED));
     }
 
-    // 抽离公共的订单存在性检查
+    // --- 私有辅助方法 ---
+
+    private long getCount(Long userId, boolean isBorrower, OrderStatus status) {
+        return lambdaQuery().eq(isBorrower, BorrowOrders::getBorrowerId, userId)
+                .eq(!isBorrower, BorrowOrders::getLenderId, userId)
+                .eq(status != null, BorrowOrders::getStatus, status != null ? status.getValue() : null)
+                .count();
+    }
+
+    private void validateRole(Long ownerId, String errorMsg) {
+        if (!Objects.equals(UserContext.getUser(), ownerId)) {
+            throw new BadRequestException(errorMsg);
+        }
+    }
+
+    private boolean updateStatus(BorrowOrders order, OrderStatus status, String reason) {
+        order.setStatus(status.getValue());
+        if (reason != null) order.setCancelReason(reason);
+        order.setUpdatedAt(System.currentTimeMillis());
+        return updateById(order);
+    }
+
     private BorrowOrders checkOrderExists(Long orderId) {
-        BorrowOrders order = getById(orderId);
-        if (order == null) throw new BadRequestException("订单不存在");
-        return order;
+        return Optional.ofNullable(getById(orderId))
+                .orElseThrow(() -> new BadRequestException("订单不存在"));
     }
 
-    // 转换VO及批量查询用户信息逻辑保持不变...
-    private BorrowOrderVO convertToVO(BorrowOrders order) {
-        BorrowOrderVO vo = BeanUtil.toBean(order, BorrowOrderVO.class);
+    private List<BorrowOrderVO> convertToVOList(List<BorrowOrders> orders) {
+        // 1. 收集所有需要查询的用户ID
         Set<Long> userIds = new HashSet<>();
-        userIds.add(order.getBorrowerId());
-        userIds.add(order.getLenderId());
+        orders.forEach(o -> {
+            userIds.add(o.getBorrowerId());
+            userIds.add(o.getLenderId());
+        });
 
-        List<UserDTO> users = userClient.queryUserByIds(userIds);
-        Map<Long, UserDTO> userMap = users.stream().collect(Collectors.toMap(UserDTO::getId, Function.identity()));
+        // 2. 批量一次性查询用户
+        Map<Long, UserDTO> userMap = userClient.queryUserByIds(userIds)
+                .stream()
+                .collect(Collectors.toMap(UserDTO::getId, Function.identity(), (a, b) -> a));
 
-        UserDTO borrower = userMap.get(order.getBorrowerId());
-        if (borrower != null) {
-            vo.setBorrowerName(borrower.getUsername());
-            vo.setBorrowerAvatar(borrower.getAvatarUrl());
-        }
-
-        UserDTO lender = userMap.get(order.getLenderId());
-        if (lender != null) {
-            vo.setLenderName(lender.getUsername());
-            vo.setLenderAvatar(lender.getAvatarUrl());
-        }
-        return vo;
+        // 3. 组装 VO
+        return orders.stream()
+                .map(order -> {
+                    BorrowOrderVO vo = BeanUtil.toBean(order, BorrowOrderVO.class);
+                    Optional.ofNullable(userMap.get(order.getBorrowerId()))
+                            .ifPresent(u -> {
+                                vo.setBorrowerName(u.getUsername());
+                                vo.setBorrowerAvatar(u.getAvatarUrl());
+                            });
+                    Optional.ofNullable(userMap.get(order.getLenderId()))
+                            .ifPresent(u -> {
+                                vo.setLenderName(u.getUsername());
+                                vo.setLenderAvatar(u.getAvatarUrl());
+                            });
+                    return vo;
+                })
+                .collect(Collectors.toList());
     }
 
-    private void addOrderLog(Long orderId, Long operatorId, String action, String remark) {
-        OrderLogs log = new OrderLogs();
-        log.setOrderId(orderId);
-        log.setOperatorId(operatorId);
-        log.setAction(action);
-        log.setRemark(remark);
-        log.setCreatedAt(System.currentTimeMillis());
-        orderLogsService.save(log);
+    // 占位实现，防止接口报错
+    @Override
+    public boolean updateOrder(Long orderId, Map<String, Object> updates) {
+        return false;
+    }
+
+    @Override
+    public PageDTO<BorrowOrderVO> listOrders(OrderStatus status,
+                                             Long itemId,
+                                             Long borrowerId,
+                                             Long lenderId,
+                                             String type,
+                                             PageQuery query) {
+        return null;
     }
 }

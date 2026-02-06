@@ -8,10 +8,8 @@ import com.aynu.common.utils.UserContext;
 import com.aynu.order.domain.dto.OrderActionDTO;
 import com.aynu.order.domain.dto.OrderCreateDTO;
 import com.aynu.order.domain.po.BorrowOrders;
-import com.aynu.order.domain.po.OrderLogs;
 import com.aynu.order.domain.vo.BorrowOrderVO;
 import com.aynu.order.service.IBorrowOrdersService;
-import com.aynu.order.service.IOrderLogsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +38,6 @@ import java.util.stream.Collectors;
 public class BorrowOrdersController {
 
     private final IBorrowOrdersService borrowOrdersService;
-    private final IOrderLogsService orderLogsService;
     private final UserClient userClient;
 
     @ApiOperation("创建借用订单")
@@ -109,17 +106,12 @@ public class BorrowOrdersController {
     @ApiOperation("根据物品ID查询订单列表")
     @GetMapping("/item/{itemId}")
     public List<BorrowOrderVO> getOrdersByItemId(@PathVariable("itemId") Long itemId) {
-        List<BorrowOrders> orders = borrowOrdersService.lambdaQuery().eq(BorrowOrders::getItemId, itemId).list();
-        return orders.stream().map(this::convertToVO).collect(Collectors.toList());
-    }
-
-    @ApiOperation("获取订单操作日志")
-    @GetMapping("/{orderId}/logs")
-    public List<OrderLogs> getOrderLogs(@PathVariable("orderId") Long orderId) {
-        return orderLogsService.lambdaQuery()
-                .eq(OrderLogs::getOrderId, orderId)
-                .orderByDesc(OrderLogs::getCreatedAt)
+        List<BorrowOrders> orders = borrowOrdersService.lambdaQuery()
+                .eq(BorrowOrders::getItemId, itemId)
                 .list();
+        return orders.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
     }
 
     @ApiOperation("获取借用统计")
@@ -156,7 +148,8 @@ public class BorrowOrdersController {
         userIds.add(order.getLenderId());
 
         List<UserDTO> users = userClient.queryUserByIds(userIds);
-        Map<Long, UserDTO> userMap = users.stream().collect(Collectors.toMap(UserDTO::getId, Function.identity()));
+        Map<Long, UserDTO> userMap = users.stream()
+                .collect(Collectors.toMap(UserDTO::getId, Function.identity()));
 
         UserDTO borrower = userMap.get(order.getBorrowerId());
         if (borrower != null) {

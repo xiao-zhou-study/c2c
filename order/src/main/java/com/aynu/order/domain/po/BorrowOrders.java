@@ -1,10 +1,9 @@
 package com.aynu.order.domain.po;
 
-import com.aynu.api.enums.item.BillingType;
-import com.aynu.order.enums.OrderStatus;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -22,6 +21,7 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @TableName("borrow_orders")
+@Builder
 public class BorrowOrders implements Serializable {
 
     @Serial
@@ -62,7 +62,7 @@ public class BorrowOrders implements Serializable {
      * 计费类型
      * 修改点：使用 api 模块定义的 BillingType 枚举
      */
-    private BillingType billingType;
+    private Integer billingType;
 
     /**
      * 押金金额（元）
@@ -88,7 +88,7 @@ public class BorrowOrders implements Serializable {
      * 订单状态
      * 修改点：使用 OrderStatus 枚举代替 Integer，避免魔术数字
      */
-    private OrderStatus status;
+    private Integer status;
 
     /**
      * 实际借出时间戳
