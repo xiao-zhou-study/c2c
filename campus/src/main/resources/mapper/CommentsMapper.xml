@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aynu.campus.mapper.CommentsMapper">
+
+    <resultMap type="com.aynu.campus.domain.po.CommentsPO" id="CommentsMap">
+        <result property="id" column="id"/>
+        <result property="topicId" column="topic_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        , topic_id, user_id, content, create_time    </sql>
+
+
+    <select id="getCountByIds" resultType="com.aynu.campus.domain.vo.CommentsCountVO">
+        SELECT topic_id as topicId, COUNT(*) as count
+        from comments
+        WHERE topic_id IN
+        <foreach collection="topicIds" open="(" close=")" separator="," item="topicId">
+            #{topicId}
+        </foreach>
+        GROUP BY topic_id;
+    </select>
+
+</mapper>

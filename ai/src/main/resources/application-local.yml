@@ -22,9 +22,9 @@ spring:
       - optional:nacos:langchain4j.yaml?refresh=false
   data:
     redis:
-      host: 154.9.25.248
+      host: 127.0.0.1
       port: 6379
-      password: zhoujiadayuan
+      password: 123456
       database: 0
 
 logging:

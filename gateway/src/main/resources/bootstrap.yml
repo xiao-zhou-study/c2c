@@ -74,6 +74,12 @@ spring:
             - Path=/ns/**
           filters:
             - PreserveHostHeader
+        - id: campus
+          uri: lb://campus-service
+          predicates:
+            - Path=/cs/**
+          filters:
+            - PreserveHostHeader
       default-filters:
         - StripPrefix=1
 

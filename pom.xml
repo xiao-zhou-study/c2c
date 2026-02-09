@@ -18,6 +18,7 @@
         <module>notification</module>
         <module>storage</module>
         <module>review</module>
+        <module>campus</module>
     </modules>
     <packaging>pom</packaging>
 

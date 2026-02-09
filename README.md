@@ -2530,3 +2530,350 @@
 }
 
 ```
+
+## 11.校园模块
+
+### 11.1 新增或修改话题分类接口
+
+**POST** `http://localhost:8080/cs/categories/add`
+
+**说明**：用于管理话题分类。当请求体中的 `id` 为空时，系统执行“新增”操作；当 `id` 不为空时，系统根据该 ID 执行“修改”操作。主要用于运营人员对社区板块（如学习交流、失物招领等）进行维护。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 用户登录访问令牌（需具备管理员权限） |
+
+**Request Body (application/json)**
+
+| 字段名 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- |
+| id | Long | 否 | 分类唯一 ID（修改时必填，新增时留空） |
+| name | String | 是 | 分类名称（如：二手交易、吐槽建议） |
+| description | String | 否 | 分类详细描述 |
+| sortOrder | Integer | 否 | 排序权重，数值越大，在前台展示的位置越靠前 |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "操作成功",
+  "ts": 1738832220000,
+  "data": {} 
+}
+
+```
+
+### 11.2 删除话题分类接口
+
+**DELETE** `http://localhost:8080/cs/categories/delete`
+
+**说明**：根据分类 ID 物理删除指定的话题分类。删除前系统通常会检查该分类下是否仍有关联的话题，若存在关联内容，建议先迁移话题或禁用分类，以保证数据完整性。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 用户登录访问令牌（需具备管理员权限） |
+| id | Query | Long | 是 | 待删除的话题分类 ID |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "删除成功",
+  "ts": 1738832300000,
+  "data": {}
+}
+
+```
+
+### 11.3 获取分类列表接口
+
+**GET** `http://localhost:8080/cs/categories/list`
+
+**说明**：获取所有启用的话题分类列表。返回结果将根据 `sortOrder` 权重进行降序排列，通常用于移动端首页板块导航、发帖页面的分类选择器等场景。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 否 | 用户登录访问令牌 |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1739086573000,
+  "data": [
+    {
+      "id": 1,
+      "name": "学习交流",
+      "description": "课业研讨、资源共享与学术请教",
+      "sortOrder": 100,
+      "createTime": 1704067200000
+    },
+    {
+      "id": 2,
+      "name": "失物招领",
+      "description": "寻找丢失物品或发布招领信息",
+      "sortOrder": 90,
+      "createTime": 1704067200000
+    },
+    {
+      "id": 3,
+      "name": "二手交易",
+      "description": "校园好物闲置转让",
+      "sortOrder": 80,
+      "createTime": 1704067200000
+    }
+  ]
+}
+
+```
+
+### 11.4 新建或修改话题接口
+
+**POST** `http://localhost:8080/cs/topics/addOrUpdate`
+
+**说明**：用于发布新话题或编辑已有话题内容。当 `id` 为空时，系统识别为发布新话题；当 `id` 不为空时，系统将对指定 ID 的话题进行覆盖更新。支持通过分类 ID 将话题关联到具体的讨论板块。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 用户登录访问令牌 |
+
+**Request Body (application/json)**
+
+| 字段名 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- |
+| id | Long | 否 | 话题唯一 ID（修改时必填，新增时留空） |
+| categoryId | Long | 是 | 所属分类 ID（如：学习交流板块 ID） |
+| title | String | 是 | 话题标题 |
+| content | String | 是 | 话题正文详细内容 |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "操作成功",
+  "ts": 1739087039000,
+  "data": {}
+}
+
+```
+
+### 11.5 删除话题接口
+
+**DELETE** `http://localhost:8080/cs/topics/delete`
+
+**说明**：根据话题 ID 物理删除指定的讨论区话题。该操作通常仅限话题发布者本人或具有管理权限的用户执行。删除话题将同步移除该话题下的关联数据（如点赞记录、评论等，具体取决于后端实现）。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 用户登录访问令牌 |
+| id | Query | Long | 是 | 待删除的话题唯一 ID |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "话题已删除",
+  "ts": 1739087150000,
+  "data": {}
+}
+
+```
+
+### 11.6 分页获取话题列表接口
+
+**GET** `http://localhost:8080/cs/topics/list`
+
+**说明**：分页获取讨论区话题列表。支持通过关键字对标题或内容进行模糊搜索，并支持自定义排序字段。返回结果包含发帖人信息、所属分类及互动统计数据。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 默认值 | 字段解释                  |
+| --- | --- | --- | --- | --- |-----------------------|
+| pageNo | Query | Integer | 否 | 1 | 当前页码                  |
+| pageSize | Query | Integer | 否 | 20 | 每页展示条数                |
+| sortBy | Query | String | 否 | - | 排序字段（如 `create_time`） |
+| isAsc | Query | Boolean | 否 | true | 是否升序排列                |
+| keyword | Query | String | 否 | - | 模糊搜索关键字               |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1739087220000,
+  "data": {
+    "total": 120,
+    "pages": 6,
+    "list": [
+      {
+        "id": 500123456,
+        "categoryId": 1,
+        "categoryName": "学习交流",
+        "userId": 2004151376778,
+        "userAvatar": "http://img.com/avatar1.png",
+        "userNickname": "学霸小王",
+        "title": "关于考研数学的复习建议",
+        "content": "大家在复习全书时一定要注意基础概念...",
+        "viewCount": 1520,
+        "commentCount": 45,
+        "createTime": 1707100000000,
+        "updateTime": 1707200000000
+      }
+    ]
+  }
+}
+
+```
+
+### 11.7 新增评论接口
+
+**POST** `http://localhost:8080/cs/comments`
+
+**说明**：用户针对特定话题发表评论。调用此接口需提供话题 ID 及评论文本内容。成功发表后，话题的评论总数将相应增加。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 用户登录访问令牌 |
+
+**Request Body (application/json)**
+
+| 字段名 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- |
+| topicId | Long | 是 | 关联的话题唯一 ID |
+| content | String | 是 | 评论文本内容 |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "评论发表成功",
+  "ts": 1739087760000,
+  "data": {}
+}
+
+```
+
+### 11.8 删除评论接口
+
+**DELETE** `http://localhost:8080/cs/comments/delete`
+
+**说明**：根据评论 ID 物理删除指定的评论内容。此操作通常仅允许评论发布者本人、话题作者或管理员执行。删除后，对应话题的评论计数将自动扣减。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 用户登录访问令牌 |
+| id | Query | Long | 是 | 待删除的评论唯一 ID |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "评论已删除",
+  "ts": 1739087820000,
+  "data": {}
+}
+
+```
+
+### 11.9 分页获取话题评论接口
+
+**GET** `http://localhost:8080/cs/comments/page`
+
+**说明**：根据话题 ID 分页获取其关联的评论列表。返回结果包含评论主体内容、发布者信息（昵称、头像）以及精确到毫秒的发布时间。支持通过分页参数控制数据量，并可自定义排序规则。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 默认值 | 字段解释                  |
+| --- | --- | --- | --- | --- |-----------------------|
+| topicId | Query | Long | 是 | - | 所属话题的唯一 ID            |
+| pageNo | Query | Integer | 否 | 1 | 当前页码（从 1 开始）          |
+| pageSize | Query | Integer | 否 | 20 | 每页展示的记录条数             |
+| sortBy | Query | String | 否 | - | 排序字段（如 `create_time`） |
+| isAsc | Query | Boolean | 否 | true | 是否升序排列                |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1739087703000,
+  "data": {
+    "total": 45,
+    "pages": 3,
+    "list": [
+      {
+        "id": 600123456789,
+        "topicId": 500123456,
+        "userId": 2004151376778,
+        "username": "校园助手",
+        "avatar": "http://img.com/avatar/u123.jpg",
+        "content": "这个建议非常中肯，大家可以参考一下。",
+        "createTime": 1707210000000
+      }
+    ]
+  }
+}
+
+```
+
+### 11.10 根据ID获取话题详情接口
+
+**GET** `http://localhost:8080/cs/topics/getTopicDetail`
+
+**说明**：获取指定话题的完整详细信息。该接口通常用于话题详情页的展示，返回数据包含话题正文、发布者详情（昵称及头像）、所属分类信息以及实时的浏览量和评论量统计。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 否 | 用户登录访问令牌 |
+| id | Query | Long | 是 | 话题唯一 ID |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1739088960000,
+  "data": {
+    "id": 500123456789,
+    "categoryId": 1,
+    "categoryName": "学习交流",
+    "userId": 2004151376778,
+    "userAvatar": "http://img.com/avatar/u123.jpg",
+    "userNickname": "校园达人",
+    "title": "关于图书馆选座系统的建议",
+    "content": "最近发现图书馆选座系统在高频率使用下偶尔会出现卡顿，建议增加预约提醒功能...",
+    "viewCount": 2304,
+    "commentCount": 18,
+    "createTime": 1707100000000,
+    "updateTime": 1707200000000
+  }
+}
+
+```
