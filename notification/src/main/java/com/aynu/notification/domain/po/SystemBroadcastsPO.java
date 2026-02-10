@@ -25,7 +25,7 @@ import java.io.Serializable;
 @Schema(description = "全员广播公告内容表对象")
 public class SystemBroadcastsPO implements Serializable {
     @Serial
-    private static final long serialVersionUID = -58744329056726608L;
+    private static final long serialVersionUID = 751621927826783616L;
 
     /**
      * 公告ID
@@ -49,8 +49,20 @@ public class SystemBroadcastsPO implements Serializable {
     /**
      * 类型枚举：1-announcement, 2-activity, 3-maintenance
      */
-    @Schema(description = "类型枚举：1-announcement, 2-activity, 3-maintenance")
+    @Schema(description = "类型枚举：1-announcement, 2-activity, 3-maintenance, 4-system")
     private Integer category;
+
+    /**
+     * 接收范围：1-全员(All), 2-个人(Specific)
+     */
+    @Schema(description = "接收范围：1-全员(All), 2-个人(Specific)")
+    private Integer targetType;
+
+    /**
+     * 目标用户ID（当target_type为2时必填）
+     */
+    @Schema(description = "目标用户ID（当target_type为2时必填）")
+    private Long targetUserId;
 
     /**
      * 是否有效：1-发布中, 0-已撤回/失效

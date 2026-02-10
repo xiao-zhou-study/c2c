@@ -13,24 +13,24 @@ import java.util.List;
 @NoArgsConstructor
 public class ItemsVO implements Serializable {
     /**
-     * 主键ID
+     * 主键ID，采用雪花算法
      */
     private Long id;
 
     /**
      * 物品所有者ID（逻辑外键，关联users表id）
      */
-    private Long userId;
+    private Long ownerId;
 
     /**
-     * 用户昵称
+     * 物品所有者名称
      */
-    private String username;
+    private String ownerName;
 
     /**
-     * 用户头像
+     * 物品所有者头像
      */
-    private String avatar;
+    private String ownerAvatar;
 
     /**
      * 物品标题（如“九成新笔记本电脑”）
@@ -48,17 +48,18 @@ public class ItemsVO implements Serializable {
     private Long categoryId;
 
     /**
-     * 分类名称
+     * 物品分类名称
      */
     private String categoryName;
 
     /**
-     * 物品成色：对应枚举 ConditionLevel (0-全新, 1-九成新, 2-八成新)
+     * 物品成色：0-全新、1-九成新、2-八成新等
+     * 对应枚举 ConditionLevel
      */
     private Integer conditionLevel;
 
     /**
-     * 物品图片URL集合
+     * 物品图片URL集合，JSON格式存储
      */
     private List<String> images;
 
@@ -68,8 +69,8 @@ public class ItemsVO implements Serializable {
     private BigDecimal price;
 
     /**
-     * 计费类型：对应枚举 BillingType (PER_DAY, PER_WEEK, PER_MONTH)
-     * Jackson 会根据枚举中的 @JsonValue 序列化为 "per_day" 等字符串
+     * 计费类型：1-按天、2-按周、3-按月
+     * 对应枚举 BillingType
      */
     private Integer billingType;
 
@@ -109,7 +110,8 @@ public class ItemsVO implements Serializable {
     private String borrowConditions;
 
     /**
-     * 物品状态：对应枚举 ItemStatus (1-可借用, 2-已借出, 3-已下架)
+     * 物品状态：1-可借用 2-已借出 3-已下架
+     * 对应枚举 ItemStatus
      */
     private Integer status;
 
@@ -122,4 +124,14 @@ public class ItemsVO implements Serializable {
      * 收藏次数
      */
     private Integer favoriteCount;
+
+    /**
+     * 记录创建时间戳（毫秒级）
+     */
+    private Long createdAt;
+
+    /**
+     * 记录更新时间戳（毫秒级）
+     */
+    private Long updatedAt;
 }

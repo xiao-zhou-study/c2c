@@ -113,4 +113,15 @@ public class ItemsController {
                                      @RequestParam(required = false, defaultValue = "10") Integer limit) {
         return itemsService.getHotItems(days, limit);
     }
+
+    /**
+     * 根据物品Id集合获取物品列表
+     *
+     * @param ids 物品Id集合
+     * @return 物品列表
+     */
+    @GetMapping("/list")
+    public List<ItemsVO> listByIds(@RequestParam("ids") List<Long> ids) {
+        return itemsService.queryByIds(ids);
+    }
 }

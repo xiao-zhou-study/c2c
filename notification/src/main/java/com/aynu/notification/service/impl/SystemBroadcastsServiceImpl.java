@@ -81,6 +81,8 @@ public class SystemBroadcastsServiceImpl extends ServiceImpl<SystemBroadcastsMap
             wrapper.le(SystemBroadcastsPO::getCreatedAt, endTime);
         }
 
+        wrapper.eq(SystemBroadcastsPO::getTargetType, 1);
+
         Page<SystemBroadcastsPO> pageResult = wrapper.page(pageQuery.toMpPage("created_at", false));
 
         List<SystemBroadcastsPO> records = pageResult.getRecords();
@@ -100,6 +102,9 @@ public class SystemBroadcastsServiceImpl extends ServiceImpl<SystemBroadcastsMap
                 .toEpochMilli();
 
         List<SystemBroadcastsPO> list = lambdaQuery().eq(SystemBroadcastsPO::getIsActive, true)
+                .and(wrapper -> wrapper.eq(SystemBroadcastsPO::getTargetType, 1)
+                        .or()
+                        .eq(SystemBroadcastsPO::getTargetUserId, userId))
                 .ge(SystemBroadcastsPO::getCreatedAt, timestamp)
                 .list();
 

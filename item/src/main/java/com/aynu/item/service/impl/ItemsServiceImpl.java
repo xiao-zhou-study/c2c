@@ -251,6 +251,32 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         return convertToVOList(items);
     }
 
+    @Override
+    public List<ItemsVO> queryByIds(List<Long> ids) {
+        List<Items> items = listByIds(ids);
+
+        if (CollUtil.isEmpty(items)) {
+            return List.of();
+        }
+
+        Set<Long> userIds = items.stream()
+                .map(Items::getOwnerId)
+                .collect(Collectors.toSet());
+
+        Map<Long, UserDTO> userMap = getUserMap(userIds);
+
+        Set<Long> categoryIds = items.stream()
+                .map(Items::getCategoryId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Categories> categoryMap = getCategoryMap(categoryIds);
+
+        return items.stream()
+                .map(item -> convertToVO(item, userMap, categoryMap))
+                .collect(Collectors.toList());
+
+    }
+
     /**
      * 手动将 DTO 属性映射到 PO 实体（避免反射）
      */
@@ -303,7 +329,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
 
         // 显式赋值字段
         vo.setId(item.getId());
-        vo.setUserId(item.getOwnerId());
+        vo.setOwnerId(item.getOwnerId());
         vo.setTitle(item.getTitle());
         vo.setDescription(item.getDescription());
         vo.setCategoryId(item.getCategoryId());
@@ -331,8 +357,8 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         // 填充关联用户信息
         UserDTO userDTO = userMap.get(item.getOwnerId());
         if (userDTO != null) {
-            vo.setUsername(userDTO.getUsername());
-            vo.setAvatar(userDTO.getAvatarUrl());
+            vo.setOwnerName(userDTO.getUsername());
+            vo.setOwnerAvatar(userDTO.getAvatarUrl());
         }
 
         // 填充关联分类信息

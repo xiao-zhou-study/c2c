@@ -127,4 +127,6 @@ public interface IItemsService extends IService<Items> {
      * @return 热门物品列表
      */
     List<ItemsVO> getHotItems(Integer days, Integer limit);
+
+    List<ItemsVO> queryByIds(List<Long> ids);
 }
