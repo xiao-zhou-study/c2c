@@ -2874,3 +2874,136 @@
 }
 
 ```
+
+### 11.11 创建或修改校园公告接口
+
+**POST** `http://localhost:8080/cs/campus_announcements/save`
+
+**说明**：用于发布新校园公告或编辑已有公告内容。当请求体中的 `id` 为空（null）时，系统识别为创建新公告；当 `id` 不为空时，系统将对对应 ID 的公告进行更新。该接口支持直接控制公告的发布状态。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+
+**Request Body (application/json)**
+
+| 字段名 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- |
+| id | Long | 否 | 公告主键 ID（修改时必填，新增时留空） |
+| title | String | 是 | 公告标题 |
+| content | String | 是 | 公告正文内容 |
+| isPublished | Boolean | 是 | 发布状态：true-已发布，false-下线 |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "操作成功",
+  "ts": 1739175773000,
+  "data": {}
+}
+
+```
+
+### 11.12 删除校园公告接口
+
+**DELETE** `http://localhost:8080/cs/campus_announcements/delete`
+
+**说明**：根据主键 ID 物理删除指定的校园公告。该操作将不可逆地从数据库中移除公告记录。通常建议在执行删除前进行确认。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+| id | Query | Long | 是 | 待删除的校园公告 ID |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "公告删除成功",
+  "ts": 1739175820000,
+  "data": {}
+}
+
+```
+
+### 11.13 分页获取校园公告列表接口
+
+**GET** `http://localhost:8080/cs/campus_announcements/list`
+
+**说明**：分页获取校园公告列表。支持通过关键字模糊搜索标题或内容，并可根据发布状态（已发布/下线）进行筛选。返回结果包含公告的完整内容及创建、更新时间戳。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 默认值 | 字段解释 |
+| --- | --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | - | 用户登录访问令牌 |
+| pageNo | Query | Integer | 否 | 1 | 当前页码 |
+| pageSize | Query | Integer | 否 | 20 | 每页展示条数 |
+| isAsc | Query | Boolean | 否 | true | 是否升序排列 |
+| sortBy | Query | String | 否 | - | 排序字段（如 `createTime`） |
+| keyword | Query | String | 否 | - | 搜索关键字（模糊匹配标题或内容） |
+| isPublished | Query | Boolean | 否 | - | 发布状态筛选：true-已发布，false-下线 |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1739176140000,
+  "data": {
+    "total": 25,
+    "pages": 2,
+    "list": [
+      {
+        "id": 900123456789,
+        "title": "校运会志愿者招募",
+        "content": "现招募校运会志愿者 50 名，主要负责场地引导...",
+        "isPublished": true,
+        "createTime": 1707300000000,
+        "updateTime": 1707305000000
+      }
+    ]
+  }
+}
+
+```
+
+### 11.14 根据ID获取校园公告详情接口
+
+**GET** `http://localhost:8080/cs/campus_announcements/get`
+
+**说明**：通过公告 ID 获取单条校园公告的完整详细信息。该接口返回公告的标题、正文全文、当前发布状态以及精确的创建与更新时间戳。适用于点击列表进入详情页时的数据加载。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 否 | 用户登录访问令牌 |
+| id | Query | Long | 是 | 校园公告唯一 ID |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1739176285000,
+  "data": {
+    "id": 900123456789,
+    "title": "关于国庆节放假安排的通知",
+    "content": "根据学校统筹安排，现将国庆节放假时间通知如下：10月1日至7日放假调休，共7天...",
+    "isPublished": true,
+    "createTime": 1707500000000,
+    "updateTime": 1707510000000
+  }
+}
+
+```
