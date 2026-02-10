@@ -21,4 +21,6 @@ public interface SystemBroadcastsService extends IService<SystemBroadcastsPO> {
                                                         Long endTime);
 
     List<SystemBroadcastsVO> getUserSystemBroadcastsList();
+
+    SystemBroadcastsPO getSystemBroadcastsDetail(Long id);
 }

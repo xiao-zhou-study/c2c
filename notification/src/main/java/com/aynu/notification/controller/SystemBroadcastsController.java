@@ -77,4 +77,15 @@ public class SystemBroadcastsController {
         return systemBroadcastsService.getUserSystemBroadcastsList();
     }
 
+    /**
+     * 查看公告详情
+     *
+     * @param id 全员广播公告内容ID
+     * @return 全员广播公告内容详情
+     */
+    @GetMapping("/detail")
+    public SystemBroadcastsPO getSystemBroadcastsDetail(@RequestParam Long id) {
+        return systemBroadcastsService.getSystemBroadcastsDetail(id);
+    }
+
 }

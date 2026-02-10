@@ -122,4 +122,10 @@ public class SystemBroadcastsServiceImpl extends ServiceImpl<SystemBroadcastsMap
                         .build())
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public SystemBroadcastsPO getSystemBroadcastsDetail(Long id) {
+        return lambdaQuery().eq(SystemBroadcastsPO::getId, id)
+                .one();
+    }
 }
