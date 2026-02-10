@@ -1474,23 +1474,60 @@
 ```
 
 ## 8.通知管理模块
-### 8.1 获取通知列表接口
+### 8.1 创建或修改全员广播公告接口
 
-**GET** `http://localhost:8080/ns/notifications`
+**POST** `http://localhost:8080/ns/system_broadcasts/add`
 
-**说明**：分页获取当前登录用户的通知消息列表。支持按消息类型（如系统通知、借用通知）及阅读状态（已读/未读）进行过滤，常用于消息中心的展示。
+**说明**：用于系统管理员发布全员广播或更新现有公告。当请求体中的 `id` 为空时，系统识别为新建公告；当 `id` 不为空时，则对原有公告内容、类型或发布状态进行修改。该公告通常面向全平台用户展示，用于重要通知、活动宣传或系统维护提醒。
 
 **Parameters**
 
 | 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
 | --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-| type | Query | String | 否 | 消息类型：`system`, `borrow`, `return`, `review` 等 |
-| isRead | Query | Boolean | 否 | 是否已读：`true`-已读，`false`-未读 |
-| pageNo | Query | Integer | 否 | 页码（默认 1） |
-| pageSize | Query | Integer | 否 | 每页条数（默认 20） |
-| sortBy | Query | String | 否 | 排序字段（如 `createdAt`） |
-| isAsc | Query | Boolean | 否 | 是否升序（默认 true） |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+
+**Request Body (application/json)**
+
+| 字段名 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- |
+| id | Long | 否 | 公告唯一 ID（修改时必填，新增时留空） |
+| title | String | 是 | 公告标题 |
+| content | String | 是 | 公告详细正文内容 |
+| category | Integer | 是 | 公告类型：1-重要通知(announcement), 2-校园活动(activity), 3-系统维护(maintenance) |
+| isActive | Boolean | 否 | 发布状态：true-发布中, false-已撤回/下线（默认为 true） |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "操作成功",
+  "ts": 1739106233000,
+  "data": {}
+}
+
+```
+
+### 8.2 管理员分页获取全员广播公告接口
+
+**GET** `http://localhost:8080/ns/system_broadcasts/list`
+
+**说明**：管理员端专用的公告列表查询接口。支持多维度筛选，包括标题模糊查询、公告类型过滤、状态（有效/失效）过滤以及发布时间的范围筛选。常用于管理后台的公告维护列表。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 默认值 | 字段解释 |
+| --- | --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | - | 管理员登录访问令牌 |
+| pageNo | Query | Integer | 否 | 1 | 当前页码 |
+| pageSize | Query | Integer | 否 | 20 | 每页展示条数 |
+| isAsc | Query | Boolean | 否 | true | 是否升序排列 |
+| sortBy | Query | String | 否 | - | 排序字段（如 `createdAt`） |
+| title | Query | String | 否 | - | 公告标题关键字（模糊搜索） |
+| category | Query | Integer | 否 | - | 类型：1-通知, 2-活动, 3-维护 |
+| isActive | Query | Boolean | 否 | - | 是否有效：true-发布中, false-已下线 |
+| startTime | Query | Long | 否 | - | 筛选范围：开始时间戳（毫秒） |
+| endTime | Query | Long | 否 | - | 筛选范围：结束时间戳（毫秒） |
 
 **Returns**
 
@@ -1498,27 +1535,28 @@
 {
   "code": 0,
   "msg": "查询成功",
-  "ts": 1707207900000,
+  "ts": 1739106500000,
   "data": {
-    "total": 50,          // 总通知数
-    "pages": 3,           // 总页数
-    "list": [             // 通知数据列表
+    "total": 50,
+    "pages": 3,
+    "list": [
       {
-        "id": 3004151376778743001,
-        "receiverId": 2004151376778743810,
-        "senderId": 1,               // 0 或 1 通常代表系统
-        "senderName": "系统通知",
-        "senderAvatar": "http://img.com/sys.png",
-        "title": "物品审核通过",
-        "content": "您发布的“九成新笔记本电脑”已审核通过，现在可以被他人借用了。",
-        "type": "system",            // 消息类型
-        "relatedId": 2004599137584095234, // 关联业务ID
-        "relatedType": "item",       // 关联业务类型
-        "isRead": false,             // 阅读状态
-        "readAt": null,              // 已读时间戳
-        "isDeleted": false,
-        "createdAt": 1707207000000,  // 创建时间戳
-        "updatedAt": 1707207000000
+        "id": 800123456789,
+        "title": "系统升级维护公告",
+        "content": "我们将于本周日凌晨进行系统升级...",
+        "category": 3,
+        "isActive": true,
+        "createdAt": 1707100000000,
+        "updatedAt": 1707100000000
+      },
+      {
+        "id": 800123456790,
+        "title": "春季校园摄影大赛",
+        "content": "欢迎各位同学踊跃投稿...",
+        "category": 2,
+        "isActive": false,
+        "createdAt": 1707000000000,
+        "updatedAt": 1707050000000
       }
     ]
   }
@@ -1526,65 +1564,36 @@
 
 ```
 
-### 8.2 获取未读通知数量接口
+### 8.3 删除全员广播公告接口
 
-**GET** `http://localhost:8080/ns/notifications/unread-count`
+**DELETE** `http://localhost:8080/ns/system_broadcasts/delete`
 
-**说明**：实时获取当前登录用户的未读消息统计。通常用于移动端或网页端的导航栏、消息图标红点提示，返回包含各分类或总计的未读数。
+**说明**：根据公告 ID 物理删除指定的全员广播内容。该操作通常仅限具有高级管理权限的人员执行。删除后，公告将立即从所有客户端消失且无法通过接口恢复。
 
 **Parameters**
 
 | 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
 | --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+| id | Query | Long | 是 | 待删除的公告唯一 ID |
 
 **Returns**
 
 ```json
 {
   "code": 0,
-  "msg": "查询成功",
-  "ts": 1738830403000,
-  "data": {
-    "total": 5,             // 总未读通知数
-    "system": 2,            // 系统通知未读数
-    "borrow": 3,            // 借用相关未读数
-    "review": 0             // 评价相关未读数
-  }
+  "msg": "公告已成功删除",
+  "ts": 1739106800000,
+  "data": {}
 }
 
 ```
 
-### 8.3 标记通知为已读接口
+### 8.4 用户获取近三月通知列表接口
 
-**POST** `http://localhost:8080/ns/notifications/{notificationId}/read`
+**GET** `http://localhost:8080/ns/system_broadcasts/user/list`
 
-**说明**：将指定的通知消息状态更新为“已读”。用户点击查看通知详情后，调用此接口以消除未读状态。
-
-**Parameters**
-
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-| notificationId | Path | Long | 是 | 通知消息唯一 ID |
-
-**Returns**
-
-```json
-{
-  "code": 0,         // 状态码：0-成功，其他-失败
-  "msg": "操作成功",  // 提示信息
-  "ts": 1738830462000,
-  "data": {}         // 返回空对象或操作状态
-}
-
-```
-
-### 8.4 标记所有通知为已读接口
-
-**POST** `http://localhost:8080/ns/notifications/read-all`
-
-**说明**：一键将当前登录用户的所有未读通知状态批量更新为“已读”。适用于用户在消息中心点击“全部忽略”或“一键已读”的快捷操作场景。
+**说明**：面向普通用户获取最近三个月内的系统通知列表。该接口会自动过滤无效（`isActive=false`）的公告，并根据当前登录用户的 ID 匹配返回每条通知的已读/未读状态，常用于移动端或网页端的“通知中心”小铃铛页面。
 
 **Parameters**
 
@@ -1592,106 +1601,61 @@
 | --- | --- | --- | --- | --- |
 | Authorization | Header | String | 是 | 用户登录访问令牌 |
 
-**Returns**
-
-```json
-{
-  "code": 0,         // 状态码：0-成功，其他-失败
-  "msg": "操作成功",  // 提示信息
-  "ts": 1738830510000,
-  "data": {}         // 返回空对象
-}
-
-```
-
-### 8.5 删除通知接口
-
-**DELETE** `http://localhost:8080/ns/notifications/{notificationId}`
-
-**说明**：根据通知 ID 永久删除指定的消息记录。执行此操作后，该通知将不再出现在用户的通知列表及未读计数中。
-
-**Parameters**
-
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-| notificationId | Path | Long | 是 | 待删除的通知唯一 ID |
-
-**Returns**
-
-```json
-{
-  "code": 0,         // 状态码：0-成功，其他-失败
-  "msg": "删除成功",  // 提示信息
-  "ts": 1738830619000,
-  "data": {}         // 返回空对象
-}
-
-```
-
-### 8.6 清空所有通知接口
-
-**POST** `http://localhost:8080/ns/notifications/clear-all`
-
-**说明**：一键清空当前登录用户的所有通知消息。该操作会将用户名下的所有通知记录标记为逻辑删除或物理删除，常用于用户清理个人消息列表。
-
-**Parameters**
-
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-
-**Returns**
-
-```json
-{
-  "code": 0,         // 状态码：0-成功，其他-失败
-  "msg": "清空成功",  // 提示信息
-  "ts": 1738830672000,
-  "data": {}         // 返回空对象
-}
-
-```
-
-### 8.7 获取最新通知接口
-
-**GET** `http://localhost:8080/ns/notifications/latest`
-
-**说明**：快速获取当前登录用户最近收到的若干条通知。该接口通常用于首页顶部的消息弹窗、悬浮预览或通知简览，返回结果按时间倒序排列。
-
-**Parameters**
-
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-| limit | Query | Integer | 否 | 获取条数限制（示例：10） |
-
-**Returns**
+**Returns (application/json)**
 
 ```json
 {
   "code": 0,
   "msg": "查询成功",
-  "ts": 1738830719000,
+  "ts": 1739106980000,
   "data": [
     {
-      "id": 3004151376778743005,
-      "receiverId": 2004151376778743810,
-      "senderId": 2004151376778743900,
-      "senderName": "张同学",
-      "senderAvatar": "http://img.com/avatar2.png",
-      "title": "新的借用申请",
-      "content": "张同学申请借用您的“充电宝”，请及时处理。",
-      "type": "borrow",
-      "relatedId": 4005123456,
-      "relatedType": "order",
-      "isRead": false,
-      "readAt": null,
-      "isDeleted": false,
-      "createdAt": 1707208000000,
-      "updatedAt": 1707208000000
+      "id": 800123456789,
+      "title": "春季运动会报名通知",
+      "content": "请各位同学于本周五前在系统完成报名...",
+      "category": 2,
+      "createdAt": 1707100000000,
+      "isRead": false
+    },
+    {
+      "id": 800123456788,
+      "title": "系统安全升级提示",
+      "content": "为了您的账号安全，建议定期修改密码...",
+      "category": 1,
+      "createdAt": 1706500000000,
+      "isRead": true
     }
   ]
+}
+
+```
+
+### 8.5 添加公告为已读接口
+
+**POST** `http://localhost:8080/ns/user_broadcast_status/read`
+
+**说明**：将一个或多个系统公告标记为已读状态。客户端通过在请求体中传入公告 ID 数组，实现批量或单个已读操作。标记后，该用户在调用通知列表接口时，对应的 `isRead` 字段将变为 `true`。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 用户登录访问令牌 |
+
+**Request Body (application/json)**
+
+| 字段名 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- |
+| - | Array<Long> | 是 | 待标记为已读的公告 ID 列表（例如：`[800123, 800124]`） |
+
+**Returns**
+
+```json
+{
+  "code": 0,
+  "msg": "标记已读成功",
+  "ts": 1739107120000,
+  "data": {}
 }
 
 ```

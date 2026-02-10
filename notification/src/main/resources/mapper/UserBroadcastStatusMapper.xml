@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aynu.notification.mapper.UserBroadcastStatusMapper">
+
+    <resultMap type="com.aynu.notification.domain.po.UserBroadcastStatusPO" id="UserBroadcastStatusMap">
+        <result property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="broadcastId" column="broadcast_id"/>
+        <result property="readAt" column="read_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        , user_id, broadcast_id, read_at    </sql>
+
+</mapper>
