@@ -1,288 +1,304 @@
 package com.aynu.order.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.IdUtil;
 import com.aynu.api.client.item.ItemClient;
 import com.aynu.api.client.user.UserClient;
 import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.api.enums.item.ItemStatus;
+import com.aynu.common.autoconfigure.mq.RabbitMqHelper;
+import com.aynu.common.domain.dto.OrderNotifyMessage;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.common.utils.UserContext;
-import com.aynu.order.domain.dto.OrderActionDTO;
-import com.aynu.order.domain.dto.OrderCreateDTO;
-import com.aynu.order.domain.po.BorrowOrders;
-import com.aynu.order.domain.vo.BorrowOrderVO;
-import com.aynu.order.enums.OrderStatus;
+import com.aynu.order.domain.dto.OrderDTO;
+import com.aynu.order.domain.po.BorrowOrdersPO;
+import com.aynu.order.domain.vo.BorrowOrdersVO;
 import com.aynu.order.mapper.BorrowOrdersMapper;
-import com.aynu.order.service.IBorrowOrdersService;
+import com.aynu.order.service.BorrowOrdersService;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * 借用订单服务实现类 - 重构版
- */
+import static com.aynu.common.constants.MqConstants.Exchange.ORDER_EXCHANGE;
+import static com.aynu.common.constants.MqConstants.Key.ORDER_DELAY_KEY;
+import static com.aynu.common.constants.MqConstants.Key.ORDER_NOTIFY_KEY;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, BorrowOrders> implements IBorrowOrdersService {
+public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, BorrowOrdersPO> implements BorrowOrdersService {
 
-    private final UserClient userClient;
     private final ItemClient itemClient;
+    private final RabbitMqHelper rabbitMqHelper;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final UserClient userClient;
 
-    private static final long DAY_MS = 24 * 60 * 60 * 1000L;
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Long createOrder(OrderCreateDTO createDTO) {
-        Long currentUserId = UserContext.getUser();
-
-        // 1. 获取并校验物品
-        ItemsVO item = Optional.ofNullable(itemClient.getById(createDTO.getItemId()))
-                .orElseThrow(() -> new BadRequestException("物品不存在"));
-
-        if (!Objects.equals(item.getStatus(), ItemStatus.AVAILABLE.getValue())) {
-            throw new BadRequestException("该物品当前不可借用");
-        }
-        if (Objects.equals(item.getUserId(), currentUserId)) {
-            throw new BadRequestException("不能借用自己发布的物品");
-        }
-
-        // 2. 构建订单
-        BigDecimal price = item.getPrice();
-        BigDecimal deposit = Objects.requireNonNullElse(item.getDeposit(), BigDecimal.ZERO);
-        BigDecimal totalAmount = price.multiply(BigDecimal.valueOf(createDTO.getBorrowDays()));
-
-        BorrowOrders order = BorrowOrders.builder()
-                .itemId(createDTO.getItemId())
-                .borrowerId(currentUserId)
-                .lenderId(item.getUserId())
-                .title(item.getTitle())
-                .price(price)
-                .billingType(item.getBillingType())
-                .deposit(deposit)
-                .borrowDays(createDTO.getBorrowDays())
-                .totalAmount(totalAmount)
-                .purpose(createDTO.getPurpose())
-                .status(OrderStatus.APPLYING.getValue())
-                .createdAt(System.currentTimeMillis())
-                .updatedAt(System.currentTimeMillis())
-                .build();
-
-        save(order);
-        return order.getId();
-    }
 
     @Override
-    public PageDTO<BorrowOrderVO> listOrders(Integer status,
-                                             Long itemId,
-                                             Long borrowerId,
-                                             Long lenderId,
-                                             String type,
-                                             PageQuery query) {
-        Long currentUserId = UserContext.getUser();
+    @Transactional
+    public String createBorrowOrders(OrderDTO dto) {
+        Long userId = UserContext.getUser();
+        Long itemId = dto.getItemId();
 
-        // 1. 分页查询 PO
-        Page<BorrowOrders> page = lambdaQuery().eq(status != null && status > 0, BorrowOrders::getStatus, status)
-                .eq(itemId != null && itemId > 0, BorrowOrders::getItemId, itemId)
-                .eq(borrowerId != null && borrowerId > 0, BorrowOrders::getBorrowerId, borrowerId)
-                .eq(lenderId != null && lenderId > 0, BorrowOrders::getLenderId, lenderId)
-                .apply(StrUtil.equals(type, "borrow"), "borrower_id = {0}", currentUserId)
-                .apply(StrUtil.equals(type, "lend"), "lender_id = {0}", currentUserId)
-                .orderByDesc(BorrowOrders::getCreatedAt)
-                .page(query.toMpPage());
+        String lockKey = "order:lock:" + userId + ":" + itemId;
 
-        if (CollUtil.isEmpty(page.getRecords())) {
-            return PageDTO.empty(page);
+        Boolean isFirstSubmit = stringRedisTemplate.opsForValue()
+                .setIfAbsent(lockKey, "1", Duration.ofDays(1L));
+
+        if (Boolean.FALSE.equals(isFirstSubmit)) {
+            log.warn("触发幂等校验，请勿重复提交订单，userId: {}, itemId: {}", userId, itemId);
+            throw new BadRequestException("您已提交过该物品的申请，请耐心等待出借人处理");
         }
 
-        // 2. 批量转换 VO 并填充用户信息（解决 N+1 问题）
-        return PageDTO.of(page, convertToVOList(page.getRecords()));
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean cancelOrder(OrderActionDTO actionDTO) {
-        BorrowOrders order = checkOrderExists(actionDTO.getOrderId());
-        validateRole(order.getBorrowerId(), "只有借用人可以取消订单");
-
-        if (!OrderStatus.canCancel(order.getStatus())) {
-            throw new BadRequestException("当前状态不允许取消订单");
+        ItemsVO item = itemClient.getById(itemId);
+        if (item == null) {
+            log.error("物品不存在，itemId：{}", itemId);
+            throw new BadRequestException("物品不存在");
+        }
+        if (item.getOwnerId()
+                .equals(userId)) {
+            log.error("不能借用属于自己的物品，itemId：{}", itemId);
+            throw new BadRequestException("不能借用属于自己的物品");
+        }
+        if (ItemStatus.AVAILABLE.getValue() != item.getStatus()) {
+            log.error("物品不可借用，itemId：{}", itemId);
+            throw new BadRequestException("物品状态异常");
         }
 
-        return updateStatus(order, OrderStatus.CANCELLED, actionDTO.getReason());
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean confirmOrder(Long orderId) {
-        BorrowOrders order = checkOrderExists(orderId);
-        validateRole(order.getLenderId(), "只有出借人可以确认订单");
-
-        if (!Objects.equals(order.getStatus(), OrderStatus.APPLYING.getValue())) {
-            throw new BadRequestException("只有申请中的订单可以确认");
-        }
-
-        return updateStatus(order, OrderStatus.CONFIRMED, null);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean rejectOrder(OrderActionDTO actionDTO) {
-        BorrowOrders order = checkOrderExists(actionDTO.getOrderId());
-        validateRole(order.getLenderId(), "只有出借人可以拒绝订单");
-
-        if (!Objects.equals(order.getStatus(), OrderStatus.APPLYING.getValue())) {
-            throw new BadRequestException("只有申请中的订单可以拒绝");
-        }
-
-        return updateStatus(order, OrderStatus.REJECTED, actionDTO.getReason());
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean borrowItem(Long orderId) {
-        BorrowOrders order = checkOrderExists(orderId);
-        validateRole(order.getLenderId(), "只有出借人可以确认借出");
-
-        if (!Objects.equals(order.getStatus(), OrderStatus.CONFIRMED.getValue())) {
-            throw new BadRequestException("只有已确认的订单可以开始借用");
-        }
-
+        Long plannedStartTime = dto.getPlannedStartTime();
+        Long plannedEndTime = dto.getPlannedEndTime();
         long now = System.currentTimeMillis();
-        order.setStatus(OrderStatus.BORROWING.getValue());
-        order.setBorrowTime(now);
-        order.setReturnTime(now + (order.getBorrowDays() * DAY_MS));
-        order.setUpdatedAt(now);
 
-        return updateById(order);
+        if (plannedStartTime == null || plannedEndTime == null || plannedStartTime < (now - 60000) || plannedStartTime >= plannedEndTime) {
+            log.error("借用时间异常，开始时间：{}，结束时间：{}，itemId：{}", plannedStartTime, plannedEndTime, itemId);
+            throw new BadRequestException("借用时间参数不合法");
+        }
+
+        long diffMillis = plannedEndTime - plannedStartTime;
+        BigDecimal diffMillisBd = BigDecimal.valueOf(diffMillis);
+
+        BigDecimal millisPerDay = new BigDecimal("86400000");
+        BigDecimal millisPerWeek = new BigDecimal("604800000");
+        BigDecimal millisPerMonth = new BigDecimal("2592000000");
+
+        Integer billingType = item.getBillingType();
+        BigDecimal duration = switch (billingType) {
+            case 1 -> diffMillisBd.divide(millisPerDay, 2, RoundingMode.HALF_UP);
+            case 2 -> diffMillisBd.divide(millisPerWeek, 2, RoundingMode.HALF_UP);
+            case 3 -> diffMillisBd.divide(millisPerMonth, 2, RoundingMode.HALF_UP);
+            default -> throw new BadRequestException("未知的计费类型");
+        };
+
+        BigDecimal price = item.getPrice();
+        BigDecimal deposit = item.getDeposit();
+        BigDecimal totalAmount = price.multiply(duration)
+                .add(deposit)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BorrowOrdersPO borrowOrdersPO = new BorrowOrdersPO();
+
+        borrowOrdersPO.setOrderNo(IdUtil.getSnowflake()
+                .nextIdStr());
+
+        borrowOrdersPO.setItemId(itemId);
+        borrowOrdersPO.setBorrowerId(userId);
+        borrowOrdersPO.setLenderId(item.getOwnerId());
+        borrowOrdersPO.setTitle(item.getTitle());
+        borrowOrdersPO.setPrice(price);
+        borrowOrdersPO.setBillingType(billingType);
+        borrowOrdersPO.setDeposit(deposit);
+
+        borrowOrdersPO.setBorrowDays(duration);
+        borrowOrdersPO.setTotalAmount(totalAmount);
+
+        borrowOrdersPO.setStatus(1);
+        borrowOrdersPO.setPurpose(dto.getPurpose());
+        borrowOrdersPO.setPlannedStartTime(plannedStartTime);
+        borrowOrdersPO.setPlannedEndTime(plannedEndTime);
+
+        borrowOrdersPO.setVersion(0);
+        borrowOrdersPO.setCreatedAt(now);
+        borrowOrdersPO.setUpdatedAt(now);
+
+        save(borrowOrdersPO);
+
+        // 即时通知出借人：有新订单申请
+        OrderNotifyMessage notifyMsg = new OrderNotifyMessage(borrowOrdersPO.getLenderId(),
+                borrowOrdersPO.getOrderNo(),
+                true);
+        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, notifyMsg);
+
+        // 延迟关单消息：24小时后检查状态
+        rabbitMqHelper.sendDelayMessage(ORDER_EXCHANGE,
+                ORDER_DELAY_KEY,
+                borrowOrdersPO.getOrderNo(),
+                Duration.ofDays(1L));
+
+        return borrowOrdersPO.getOrderNo();
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean returnItem(Long orderId) {
-        BorrowOrders order = checkOrderExists(orderId);
-        Long currentUserId = UserContext.getUser();
+    public PageDTO<BorrowOrdersVO> getBorrowOrdersPage(PageQuery pageQuery,
+                                                       String keyword,
+                                                       Integer status,
+                                                       Long startTime,
+                                                       Long endTime,
+                                                       boolean isOut) {
+        Long userId = UserContext.getUser();
+        LambdaQueryChainWrapper<BorrowOrdersPO> wrapper = lambdaQuery();
 
-        if (!Objects.equals(currentUserId, order.getBorrowerId()) && !Objects.equals(currentUserId,
-                order.getLenderId())) {
-            throw new BadRequestException("只有相关当事人可以确认归还");
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(BorrowOrdersPO::getTitle, keyword);
         }
 
-        if (!Objects.equals(order.getStatus(), OrderStatus.BORROWING.getValue())) {
-            throw new BadRequestException("只有借用中的订单可以归还");
+        if (status != null && status > 0) {
+            wrapper.eq(BorrowOrdersPO::getStatus, status);
         }
 
-        order.setStatus(OrderStatus.RETURNED.getValue());
-        order.setActualReturnTime(System.currentTimeMillis());
-        order.setUpdatedAt(System.currentTimeMillis());
-
-        return updateById(order);
-    }
-
-    @Override
-    public Map<String, Object> getBorrowStats(Long userId) {
-        final Long targetUid = userId != null ? userId : UserContext.getUser();
-
-        // 优化：建议在数据库层面使用分组查询优化，此处保持逻辑但简化写法
-        return Map.of("totalBorrowed",
-                getCount(targetUid, true, null),
-                "borrowing",
-                getCount(targetUid, true, OrderStatus.BORROWING),
-                "returned",
-                getCount(targetUid, true, OrderStatus.RETURNED),
-                "totalLent",
-                getCount(targetUid, false, null),
-                "lending",
-                getCount(targetUid, false, OrderStatus.BORROWING),
-                "lentReturned",
-                getCount(targetUid, false, OrderStatus.RETURNED));
-    }
-
-    // --- 私有辅助方法 ---
-
-    private long getCount(Long userId, boolean isBorrower, OrderStatus status) {
-        return lambdaQuery().eq(isBorrower, BorrowOrders::getBorrowerId, userId)
-                .eq(!isBorrower, BorrowOrders::getLenderId, userId)
-                .eq(status != null, BorrowOrders::getStatus, status != null ? status.getValue() : null)
-                .count();
-    }
-
-    private void validateRole(Long ownerId, String errorMsg) {
-        if (!Objects.equals(UserContext.getUser(), ownerId)) {
-            throw new BadRequestException(errorMsg);
+        if (startTime != null && startTime > 0) {
+            wrapper.ge(BorrowOrdersPO::getCreatedAt, startTime);
         }
-    }
 
-    private boolean updateStatus(BorrowOrders order, OrderStatus status, String reason) {
-        order.setStatus(status.getValue());
-        if (reason != null) order.setCancelReason(reason);
-        order.setUpdatedAt(System.currentTimeMillis());
-        return updateById(order);
-    }
+        if (endTime != null && endTime > 0) {
+            wrapper.le(BorrowOrdersPO::getCreatedAt, endTime);
+        }
 
-    private BorrowOrders checkOrderExists(Long orderId) {
-        return Optional.ofNullable(getById(orderId))
-                .orElseThrow(() -> new BadRequestException("订单不存在"));
-    }
+        if (isOut) {
+            wrapper.eq(BorrowOrdersPO::getLenderId, userId);
+        } else {
+            wrapper.eq(BorrowOrdersPO::getBorrowerId, userId);
+        }
 
-    private List<BorrowOrderVO> convertToVOList(List<BorrowOrders> orders) {
-        // 1. 收集所有需要查询的用户ID
-        Set<Long> userIds = new HashSet<>();
-        orders.forEach(o -> {
-            userIds.add(o.getBorrowerId());
-            userIds.add(o.getLenderId());
-        });
+        Page<BorrowOrdersPO> pageResult = wrapper.page(pageQuery.toMpPage("created_at", false));
+        List<BorrowOrdersPO> records = pageResult.getRecords();
 
-        // 2. 批量一次性查询用户
-        Map<Long, UserDTO> userMap = userClient.queryUserByIds(userIds)
-                .stream()
-                .collect(Collectors.toMap(UserDTO::getId, Function.identity(), (a, b) -> a));
+        if (CollUtil.isEmpty(records)) {
+            return PageDTO.empty(pageResult);
+        }
 
-        // 3. 组装 VO
-        return orders.stream()
-                .map(order -> {
-                    BorrowOrderVO vo = BeanUtil.toBean(order, BorrowOrderVO.class);
-                    Optional.ofNullable(userMap.get(order.getBorrowerId()))
-                            .ifPresent(u -> {
-                                vo.setBorrowerName(u.getUsername());
-                                vo.setBorrowerAvatar(u.getAvatarUrl());
-                            });
-                    Optional.ofNullable(userMap.get(order.getLenderId()))
-                            .ifPresent(u -> {
-                                vo.setLenderName(u.getUsername());
-                                vo.setLenderAvatar(u.getAvatarUrl());
-                            });
-                    return vo;
+        List<UserDTO> userList;
+        if (isOut) {
+            Set<Long> borrowerIds = records.stream()
+                    .map(BorrowOrdersPO::getBorrowerId)
+                    .collect(Collectors.toSet());
+
+            userList = userClient.queryUserByIds(borrowerIds);
+        } else {
+            Set<Long> lenderIds = records.stream()
+                    .map(BorrowOrdersPO::getLenderId)
+                    .collect(Collectors.toSet());
+
+            userList = userClient.queryUserByIds(lenderIds);
+        }
+
+        Map<Long, UserDTO> userMap = new HashMap<>();
+        if (CollUtil.isNotEmpty(userList)) {
+            userMap = userList.stream()
+                    .collect(Collectors.toMap(UserDTO::getId, user -> user));
+        }
+
+        Set<Long> itemIds = records.stream()
+                .map(BorrowOrdersPO::getItemId)
+                .collect(Collectors.toSet());
+
+        List<ItemsVO> itemList = new ArrayList<>();
+        if (CollUtil.isNotEmpty(itemIds)) {
+            itemList = itemClient.listByIds(itemIds);
+        }
+
+        Map<Long, ItemsVO> itemMap = new HashMap<>();
+        if (CollUtil.isNotEmpty(itemList)) {
+            itemMap = itemList.stream()
+                    .collect(Collectors.toMap(ItemsVO::getId, item -> item));
+        }
+
+        Map<Long, UserDTO> finalUserMap = userMap;
+        Map<Long, ItemsVO> finalItemMap = itemMap;
+        List<BorrowOrdersVO> collect = records.stream()
+                .map(record -> {
+                    UserDTO user;
+                    if (isOut) {
+                        user = finalUserMap.getOrDefault(record.getBorrowerId(), new UserDTO());
+                    } else {
+                        user = finalUserMap.getOrDefault(record.getLenderId(), new UserDTO());
+                    }
+                    ItemsVO item = finalItemMap.getOrDefault(record.getItemId(), new ItemsVO());
+
+                    BorrowOrdersVO borrowOrdersVO = new BorrowOrdersVO();
+                    borrowOrdersVO.setId(record.getId());
+                    borrowOrdersVO.setOrderNo(record.getOrderNo());
+                    borrowOrdersVO.setItemId(record.getItemId());
+                    borrowOrdersVO.setItemName(item.getTitle());
+                    borrowOrdersVO.setItemImages(item.getImages());
+                    borrowOrdersVO.setBorrowerId(record.getBorrowerId());
+
+                    if (isOut) {
+                        borrowOrdersVO.setBorrowerName(user.getUsername());
+                        borrowOrdersVO.setBorrowerAvatar(user.getAvatarUrl());
+                    } else {
+                        borrowOrdersVO.setLenderName(user.getUsername());
+                        borrowOrdersVO.setLenderAvatar(user.getAvatarUrl());
+                    }
+
+                    borrowOrdersVO.setLenderId(record.getLenderId());
+                    borrowOrdersVO.setTitle(record.getTitle());
+                    borrowOrdersVO.setPrice(record.getPrice());
+                    borrowOrdersVO.setBillingType(record.getBillingType());
+                    borrowOrdersVO.setDeposit(record.getDeposit());
+                    borrowOrdersVO.setBorrowDays(record.getBorrowDays());
+                    borrowOrdersVO.setTotalAmount(record.getTotalAmount());
+                    borrowOrdersVO.setStatus(record.getStatus());
+                    borrowOrdersVO.setPurpose(record.getPurpose());
+                    borrowOrdersVO.setPlannedStartTime(record.getPlannedStartTime());
+                    borrowOrdersVO.setPlannedEndTime(record.getPlannedEndTime());
+                    borrowOrdersVO.setConfirmTime(record.getConfirmTime());
+                    borrowOrdersVO.setPayTime(record.getPayTime());
+                    borrowOrdersVO.setPayTradeNo(record.getPayTradeNo());
+                    borrowOrdersVO.setBorrowTime(record.getBorrowTime());
+                    borrowOrdersVO.setExpectReturnTime(record.getExpectReturnTime());
+                    borrowOrdersVO.setActualReturnTime(record.getActualReturnTime());
+                    borrowOrdersVO.setRefundTime(record.getRefundTime());
+                    borrowOrdersVO.setCancelReason(record.getCancelReason());
+                    borrowOrdersVO.setVersion(record.getVersion());
+                    borrowOrdersVO.setCreatedAt(record.getCreatedAt());
+                    borrowOrdersVO.setUpdatedAt(record.getUpdatedAt());
+
+                    return borrowOrdersVO;
                 })
                 .collect(Collectors.toList());
-    }
 
-    // 占位实现，防止接口报错
-    @Override
-    public boolean updateOrder(Long orderId, Map<String, Object> updates) {
-        return false;
+        return PageDTO.of(pageResult, collect);
     }
 
     @Override
-    public PageDTO<BorrowOrderVO> listOrders(OrderStatus status,
-                                             Long itemId,
-                                             Long borrowerId,
-                                             Long lenderId,
-                                             String type,
-                                             PageQuery query) {
-        return null;
+    @Transactional
+    public void agreeBorrowOrders(String id) {
+        BorrowOrdersPO oldOrder = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, id)
+                .one();
+
+        lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, id)
+                .eq(BorrowOrdersPO::getVersion, oldOrder.getVersion())
+                .set(BorrowOrdersPO::getStatus, 2)
+                .set(BorrowOrdersPO::getVersion, oldOrder.getVersion() + 1)
+                .update();
+
+        OrderNotifyMessage notifyMsg = new OrderNotifyMessage(oldOrder.getBorrowerId(), oldOrder.getOrderNo(), false);
+        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, notifyMsg);
+
     }
 }

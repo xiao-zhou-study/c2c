@@ -1,168 +1,94 @@
 package com.aynu.order.controller;
 
-import com.aynu.api.client.user.UserClient;
-import com.aynu.api.dto.user.UserDTO;
+
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
-import com.aynu.common.utils.UserContext;
-import com.aynu.order.domain.dto.OrderActionDTO;
-import com.aynu.order.domain.dto.OrderCreateDTO;
-import com.aynu.order.domain.po.BorrowOrders;
-import com.aynu.order.domain.vo.BorrowOrderVO;
-import com.aynu.order.service.IBorrowOrdersService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import com.aynu.order.domain.dto.OrderDTO;
+import com.aynu.order.domain.vo.BorrowOrdersVO;
+import com.aynu.order.service.BorrowOrdersService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-/**
- * <p>
- * 借用订单表，存储物品租赁的订单核心信息（逻辑外键关联物品/用户表） 前端控制器
- * </p>
- *
- * @author xiaozhou
- * @since 2025-12-23
- */
+@Tag(name = "借用订单表接口")
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/borrow_orders")
 @RequiredArgsConstructor
-@Api(tags = "订单管理接口")
 public class BorrowOrdersController {
 
-    private final IBorrowOrdersService borrowOrdersService;
-    private final UserClient userClient;
+    private final BorrowOrdersService borrowOrdersService;
 
-    @ApiOperation("创建借用订单")
-    @PostMapping
-    public Long createOrder(@Valid @RequestBody OrderCreateDTO createDTO) {
-        return borrowOrdersService.createOrder(createDTO);
+    /**
+     * 创建借用订单
+     *
+     * @param dto 借用订单信息
+     * @return 借用订单ID
+     */
+    @PostMapping("/create")
+    public String createBorrowOrders(@RequestBody OrderDTO dto) {
+        return borrowOrdersService.createBorrowOrders(dto);
     }
 
-    @ApiOperation("获取订单列表")
-    @GetMapping
-    public PageDTO<BorrowOrderVO> listOrders(@RequestParam(required = false) Integer status,
-                                             @RequestParam(required = false) Long itemId,
-                                             @RequestParam(required = false) Long borrowerId,
-                                             @RequestParam(required = false) Long lenderId,
-                                             @RequestParam(required = false) String type,
-                                             PageQuery query) {
-        return borrowOrdersService.listOrders(status, itemId, borrowerId, lenderId, type, query);
+    /**
+     * 分页获取我借出的订单
+     *
+     * @param pageQuery 分页参数
+     * @param keyword   关键词
+     * @param status    订单状态
+     * @param startTime 开始时间
+     * @param endTime   结束时间
+     * @return 借用订单分页列表
+     */
+    @GetMapping("/page/out")
+    public PageDTO<BorrowOrdersVO> getBorrowOrdersPageOut(PageQuery pageQuery,
+                                                          String keyword,
+                                                          Integer status,
+                                                          Long startTime,
+                                                          Long endTime) {
+        return borrowOrdersService.getBorrowOrdersPage(pageQuery, keyword, status, startTime, endTime, true);
     }
 
-    @ApiOperation("获取订单详情")
-    @GetMapping("/{orderId}")
-    public BorrowOrderVO getOrderDetail(@PathVariable("orderId") Long orderId) {
-        BorrowOrders order = borrowOrdersService.getById(orderId);
-        if (order == null) {
-            throw new RuntimeException("订单不存在");
-        }
-        return convertToVO(order);
+    /**
+     * 分页获取我借用的订单
+     *
+     * @param pageQuery 分页参数
+     * @param keyword   关键词
+     * @param status    订单状态
+     * @param startTime 开始时间
+     * @param endTime   结束时间
+     * @return 借用订单分页列表
+     */
+    @GetMapping("/page/in")
+    public PageDTO<BorrowOrdersVO> getBorrowOrdersPageIn(PageQuery pageQuery,
+                                                         String keyword,
+                                                         Integer status,
+                                                         Long startTime,
+                                                         Long endTime) {
+        return borrowOrdersService.getBorrowOrdersPage(pageQuery, keyword, status, startTime, endTime, false);
     }
 
-    @ApiOperation("更新订单信息")
-    @PutMapping("/{orderId}")
-    public Boolean updateOrder(@PathVariable("orderId") Long orderId, @RequestBody Map<String, Object> updates) {
-        return borrowOrdersService.updateOrder(orderId, updates);
+    /**
+     * 同意借用订单
+     *
+     * @param id 借用订单ID
+     */
+    @PutMapping("/agree")
+    public void agreeBorrowOrders(@RequestParam String id) {
+        borrowOrdersService.agreeBorrowOrders(id);
     }
 
-    @ApiOperation("取消订单")
-    @PutMapping("/cancel")
-    public Boolean cancelOrder(@RequestBody OrderActionDTO actionDTO) {
-        return borrowOrdersService.cancelOrder(actionDTO);
-    }
-
-    @ApiOperation("确认订单")
-    @PutMapping("/confirm")
-    public Boolean confirmOrder(@RequestBody Map<String, Long> request) {
-        return borrowOrdersService.confirmOrder(request.get("orderId"));
-    }
-
-    @ApiOperation("拒绝订单")
+    /**
+     * 拒绝借用订单
+     *
+     * @param id 借用订单ID
+     */
     @PutMapping("/reject")
-    public Boolean rejectOrder(@RequestBody OrderActionDTO actionDTO) {
-        return borrowOrdersService.rejectOrder(actionDTO);
+    public void rejectBorrowOrders(@RequestParam String id, String reason) {
+        borrowOrdersService.rejectBorrowOrders(id, reason);
     }
 
-    @ApiOperation("开始借用")
-    @PutMapping("/borrow")
-    public Boolean borrowItem(@RequestBody Map<String, Long> request) {
-        return borrowOrdersService.borrowItem(request.get("orderId"));
-    }
+    // todo : 订单剩余接口 付款、归还、确认归还、取消订单
 
-    @ApiOperation("归还物品")
-    @PutMapping("/return")
-    public Boolean returnItem(@RequestBody Map<String, Long> request) {
-        return borrowOrdersService.returnItem(request.get("orderId"));
-    }
+    // todo： 争议订单
 
-    @ApiOperation("根据物品ID查询订单列表")
-    @GetMapping("/item/{itemId}")
-    public List<BorrowOrderVO> getOrdersByItemId(@PathVariable("itemId") Long itemId) {
-        List<BorrowOrders> orders = borrowOrdersService.lambdaQuery()
-                .eq(BorrowOrders::getItemId, itemId)
-                .list();
-        return orders.stream()
-                .map(this::convertToVO)
-                .collect(Collectors.toList());
-    }
-
-    @ApiOperation("获取借用统计")
-    @GetMapping("/stats")
-    public Map<String, Object> getBorrowStats() {
-        Long currentUserId = UserContext.getUser();
-        return borrowOrdersService.getBorrowStats(currentUserId);
-    }
-
-    private BorrowOrderVO convertToVO(BorrowOrders order) {
-        BorrowOrderVO vo = new BorrowOrderVO();
-        vo.setId(order.getId());
-        vo.setItemId(order.getItemId());
-        vo.setTitle(order.getTitle());
-        vo.setBorrowerId(order.getBorrowerId());
-        vo.setLenderId(order.getLenderId());
-        vo.setPrice(order.getPrice());
-        vo.setBillingType(order.getBillingType());
-        vo.setDeposit(order.getDeposit());
-        vo.setBorrowDays(order.getBorrowDays());
-        vo.setTotalAmount(order.getTotalAmount());
-        vo.setPurpose(order.getPurpose());
-        vo.setStatus(order.getStatus());
-        vo.setBorrowTime(order.getBorrowTime());
-        vo.setReturnTime(order.getReturnTime());
-        vo.setActualReturnTime(order.getActualReturnTime());
-        vo.setCancelReason(order.getCancelReason());
-        vo.setCreatedAt(order.getCreatedAt());
-        vo.setUpdatedAt(order.getUpdatedAt());
-
-        // 获取用户信息
-        Set<Long> userIds = new HashSet<>();
-        userIds.add(order.getBorrowerId());
-        userIds.add(order.getLenderId());
-
-        List<UserDTO> users = userClient.queryUserByIds(userIds);
-        Map<Long, UserDTO> userMap = users.stream()
-                .collect(Collectors.toMap(UserDTO::getId, Function.identity()));
-
-        UserDTO borrower = userMap.get(order.getBorrowerId());
-        if (borrower != null) {
-            vo.setBorrowerName(borrower.getUsername());
-            vo.setBorrowerAvatar(borrower.getAvatarUrl());
-        }
-
-        UserDTO lender = userMap.get(order.getLenderId());
-        if (lender != null) {
-            vo.setLenderName(lender.getUsername());
-            vo.setLenderAvatar(lender.getAvatarUrl());
-        }
-
-        return vo;
-    }
 }
