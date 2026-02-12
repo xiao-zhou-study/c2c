@@ -5,7 +5,7 @@ RUN apk add --no-cache tzdata && \
     echo "Asia/Shanghai" > /etc/timezone
 RUN addgroup -g 1000 app && adduser -u 1000 -G app -s /bin/sh -D app
 COPY target/*.jar app.jar
-ENV JAVA_OPTS="-Xms128m -Xmx256m -Duser.timezone=Asia/Shanghai"
+ENV JAVA_OPTS="-Duser.timezone=Asia/Shanghai"
 EXPOSE 8084
 USER app
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

@@ -13,7 +13,7 @@ RUN groupadd -g 1000 app && \
 
 COPY target/*.jar app.jar
 
-ENV JAVA_OPTS="-Xms256m -Xmx512m -Duser.timezone=Asia/Shanghai"
+ENV JAVA_OPTS="-Duser.timezone=Asia/Shanghai"
 
 EXPOSE 8088
 
