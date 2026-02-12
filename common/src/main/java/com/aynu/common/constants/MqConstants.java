@@ -86,5 +86,7 @@ public interface MqConstants {
         String REFUND_CHANGE = "refund.status.change";
 
         String ORDER_DELAY_KEY = "delay.order.query";
+
+        String ORDER_RETURN_DELAY_KEY = "delay.order.return";
     }
 }

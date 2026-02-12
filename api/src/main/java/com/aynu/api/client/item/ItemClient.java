@@ -6,6 +6,7 @@ import com.aynu.api.dto.item.ItemsVO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -26,4 +27,6 @@ public interface ItemClient {
     List<ItemsVO> listByIds(@RequestParam("ids") Iterable<Long> ids);
 
 
+    @PutMapping("/items/batch/status")
+    void batchUpdateStatus(@RequestParam Iterable<Long> ids, @RequestParam int value);
 }

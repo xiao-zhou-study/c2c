@@ -21,8 +21,13 @@ public class ItemClientFallback implements FallbackFactory<ItemClient> {
             }
 
             @Override
-            public List<ItemsVO> listByIds(List<Long> ids) {
+            public List<ItemsVO> listByIds(Iterable<Long> ids) {
                 return List.of();
+            }
+
+            @Override
+            public void batchUpdateStatus(Iterable<Long> ids, int value) {
+
             }
         };
     }

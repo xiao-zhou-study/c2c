@@ -47,7 +47,7 @@ public class SystemBroadcastsPO implements Serializable {
     private String content;
 
     /**
-     * 类型枚举：1-announcement, 2-activity, 3-maintenance
+     * 类型枚举：1-announcement, 2-activity, 3-maintenance, 4-system
      */
     @Schema(description = "类型枚举：1-announcement, 2-activity, 3-maintenance, 4-system")
     private Integer category;

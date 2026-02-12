@@ -3,12 +3,14 @@ package com.aynu.order.controller;
 
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
-import com.aynu.order.domain.dto.OrderDTO;
+import com.aynu.order.domain.dto.*;
 import com.aynu.order.domain.vo.BorrowOrdersVO;
 import com.aynu.order.service.BorrowOrdersService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
 
 @Tag(name = "借用订单表接口")
 @RestController
@@ -70,24 +72,67 @@ public class BorrowOrdersController {
     /**
      * 同意借用订单
      *
-     * @param id 借用订单ID
+     * @param dto dto
      */
     @PutMapping("/agree")
-    public void agreeBorrowOrders(@RequestParam String id) {
-        borrowOrdersService.agreeBorrowOrders(id);
+    public void agreeBorrowOrders(@RequestBody BorrowAgreeDTO dto) {
+        borrowOrdersService.agreeBorrowOrders(dto);
     }
 
     /**
      * 拒绝借用订单
      *
-     * @param id 借用订单ID
+     * @param dto 借用订单信息
      */
     @PutMapping("/reject")
-    public void rejectBorrowOrders(@RequestParam String id, String reason) {
-        borrowOrdersService.rejectBorrowOrders(id, reason);
+    public void rejectBorrowOrders(@RequestBody BorrowRejectDTO dto) {
+        borrowOrdersService.rejectBorrowOrders(dto);
     }
 
-    // todo : 订单剩余接口 付款、归还、确认归还、取消订单
+    /**
+     * 取消借用订单
+     *
+     * @param dto 借用订单信息
+     */
+    @PutMapping("/cancel")
+    public void cancelBorrowOrders(@RequestBody BorrowCancelDTO dto) {
+        borrowOrdersService.cancelBorrowOrders(dto);
+    }
+
+    /**
+     * 归还借用订单
+     *
+     * @param dto 借用订单信息
+     */
+    @PutMapping("/return")
+    public void returnBorrowOrders(@RequestBody BorrowReturnDTO dto) {
+        borrowOrdersService.returnBorrowOrders(dto);
+    }
+
+    /**
+     * 确认归还订单
+     *
+     * @param dto 借用订单信息
+     */
+    @PutMapping("/confirm")
+    public void confirmBorrowOrders(@RequestBody BorrowConfirmDTO dto) {
+        borrowOrdersService.confirmBorrowOrders(dto);
+    }
+
+    /**
+     * 订单付款
+     */
+    @PutMapping("/pay")
+    public String payBorrowOrders(@RequestBody BorrowPayDTO dto) {
+        return borrowOrdersService.payBorrowOrders(dto);
+    }
+
+    @PostMapping("/notify")
+    public String handleNotify(HttpServletRequest request) {
+        return borrowOrdersService.handleNotify(request);
+    }
+
+    // todo : 订单剩余接口 付款
 
     // todo： 争议订单
 

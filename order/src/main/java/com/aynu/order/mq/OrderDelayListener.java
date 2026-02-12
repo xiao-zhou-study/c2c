@@ -4,6 +4,7 @@ import com.aynu.common.constants.MqConstants;
 import com.aynu.order.domain.po.BorrowOrdersPO;
 import com.aynu.order.mapper.BorrowOrdersMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.ExchangeTypes;
@@ -44,5 +45,27 @@ public class OrderDelayListener {
         } else {
             log.info("订单 {} 状态已变更，无需处理", orderNo);
         }
+    }
+
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "user.order.return.queue", durable = "true"),
+            exchange = @Exchange(name = MqConstants.Exchange.ORDER_EXCHANGE, type = ExchangeTypes.TOPIC),
+            key = MqConstants.Key.ORDER_RETURN_DELAY_KEY))
+    public void handleOrderReturnDelayMessage(String orderNo) {
+        log.info("收到延迟还订单任务，订单号：{}", orderNo);
+
+        LambdaQueryChainWrapper<BorrowOrdersPO> wrapper = new LambdaQueryChainWrapper<>(orderMapper);
+
+        BorrowOrdersPO ordersPO = wrapper.eq(BorrowOrdersPO::getOrderNo, orderNo)
+                .one();
+
+        if (ordersPO != null && ordersPO.getStatus()
+                .equals(4)) {
+            ordersPO.setStatus(5);
+            ordersPO.setUpdatedAt(System.currentTimeMillis());
+            orderMapper.updateById(ordersPO);
+        }
+
+        // todo 退还押金给借用者，给出借者创建通知，给出借者对应的订单金额
+
     }
 }
