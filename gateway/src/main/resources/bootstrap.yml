@@ -39,6 +39,8 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/us/**
+          filters:
+            - PreserveHostHeader
         # 商品服务路由
         - id: item
           uri: lb://item-service

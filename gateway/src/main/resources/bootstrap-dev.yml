@@ -5,11 +5,20 @@ spring:
       discovery:
         namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
         group: DEFAULT_GROUP
+        enabled: true
       config:
         namespace: 5a40fe88-2104-48e6-93bf-b46cacb54806
         timeout: 10000
         config-retry-time: 3000
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
 logging:
   level:
+    root: info
     com.aynu: debug
     org.springframework.cloud.gateway: trace
+    org.springframework.cloud.loadbalancer: debug
+    com.alibaba.nacos.client.naming: debug

@@ -77,7 +77,22 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler, Ordere
         URI uri = request.getURI();
         String host = uri.getHost();
         int port = uri.getPort();
-        log.error("网关路由异常-host:{} ,port:{}，uri:{},  errormessage:", host, port, request.getPath(), ex);
+        String method = request.getMethodValue();
+        String path = request.getPath().toString();
+        String remoteAddr = request.getRemoteAddress() != null ? request.getRemoteAddress().getAddress().getHostAddress() : "unknown";
+        
+        log.error("========================================");
+        log.error("【网关路由异常】");
+        log.error("请求方法: {}", method);
+        log.error("请求路径: {}", path);
+        log.error("远程IP: {}", remoteAddr);
+        log.error("目标Host: {}", host);
+        log.error("目标端口: {}", port);
+        log.error("完整URI: {}", uri);
+        log.error("异常类型: {}", ex.getClass().getName());
+        log.error("========================================");
+        log.error("异常详情:", ex);
+        log.error("========================================");
     }
 
     @Override
