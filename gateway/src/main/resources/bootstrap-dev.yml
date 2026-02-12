@@ -12,3 +12,4 @@ spring:
 logging:
   level:
     com.aynu: debug
+    org.springframework.cloud.gateway: trace
