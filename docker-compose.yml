@@ -7,7 +7,6 @@ services:
     ports:
       - "10010:10010"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
@@ -24,7 +23,6 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - JAVA_OPTS=-Xms384m -Xmx768m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
@@ -41,7 +39,6 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
@@ -58,7 +55,6 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
@@ -75,7 +71,6 @@ services:
     ports:
       - "8084:8084"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
@@ -92,7 +87,6 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
@@ -109,7 +103,6 @@ services:
     ports:
       - "8086:8086"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
@@ -126,7 +119,6 @@ services:
     ports:
       - "8087:8087"
     environment:
-      - JAVA_OPTS=-Xms128m -Xmx384m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
@@ -143,7 +135,6 @@ services:
     ports:
       - "8089:8089"
     environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1 -Duser.timezone=Asia/Shanghai
       - SPRING_CLOUD_NACOS_CONFIG_USERNAME=nacos
       - SPRING_CLOUD_NACOS_CONFIG_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
