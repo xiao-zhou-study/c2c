@@ -13,6 +13,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-gateway
     networks:
       - micro-net
     restart: unless-stopped
@@ -29,6 +30,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-auth
     networks:
       - micro-net
     restart: unless-stopped
@@ -45,6 +47,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-user
     networks:
       - micro-net
     restart: unless-stopped
@@ -61,6 +64,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-item
     networks:
       - micro-net
     restart: unless-stopped
@@ -77,6 +81,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-order
     networks:
       - micro-net
     restart: unless-stopped
@@ -93,6 +98,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-notification
     networks:
       - micro-net
     restart: unless-stopped
@@ -109,6 +115,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-storage
     networks:
       - micro-net
     restart: unless-stopped
@@ -125,6 +132,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-review
     networks:
       - micro-net
     restart: unless-stopped
@@ -141,6 +149,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_USERNAME=nacos
       - SPRING_CLOUD_NACOS_DISCOVERY_PASSWORD=zhoujiadayuan
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_IP=xywpgx-campus
     networks:
       - micro-net
     restart: unless-stopped
