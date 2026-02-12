@@ -22,7 +22,7 @@ spring:
             refresh: false
           - data-id: shared-feign.yaml # 共享feign配置
             refresh: false
-          - dataId: shared-mq.yaml # 共享mq配置
+          - data-id: shared-mq.yaml # 共享mq配置
         timeout: 10000
         config-retry-time: 3000
 xy:
