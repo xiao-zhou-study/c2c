@@ -1,5 +1,8 @@
 spring:
   cloud:
+    inetutils:
+      preferred-networks:
+        - 172.18.
     nacos:
       server-addr: nacos:8848
       discovery:
