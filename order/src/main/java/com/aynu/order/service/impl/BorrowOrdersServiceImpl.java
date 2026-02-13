@@ -525,6 +525,8 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
     @Override
     public String handleNotify(HttpServletRequest request) {
+        log.info("支付宝异步通知：{}", request);
+
         // 1. 获取支付宝 Post 过来的参数
         Map<String, String> params = new HashMap<>();
         Map<String, String[]> requestParams = request.getParameterMap();

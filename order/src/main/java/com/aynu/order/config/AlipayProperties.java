@@ -22,7 +22,7 @@ public class AlipayProperties {
     @Bean
     public AlipayClient alipayConfig() {
         AlipayConfig alipayConfig = new AlipayConfig();
-        alipayConfig.setServerUrl("https://openapi.alipay.com/gateway.do");
+        alipayConfig.setServerUrl("https://openapi-sandbox.dl.alipaydev.com/gateway.do");
         alipayConfig.setAppId(appId);
         alipayConfig.setPrivateKey(privateKey);
         alipayConfig.setFormat("json");
