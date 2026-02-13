@@ -8,14 +8,16 @@ import com.aynu.order.domain.vo.BorrowOrdersVO;
 import com.aynu.order.service.BorrowOrdersService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 @Tag(name = "借用订单表接口")
 @RestController
 @RequestMapping("/borrow_orders")
 @RequiredArgsConstructor
+@Slf4j
 public class BorrowOrdersController {
 
     private final BorrowOrdersService borrowOrdersService;
@@ -130,12 +132,13 @@ public class BorrowOrdersController {
     /**
      * 回调接口
      *
-     * @param request 请求
+     * @param params 请求
      * @return 状态
      */
     @PostMapping("/notify")
-    public String handleNotify(HttpServletRequest request) {
-        return borrowOrdersService.handleNotify(request);
+    public String handleNotify(@RequestParam Map<String, String> params) {
+        log.info("支付宝异步回调接收到参数: {}", params);
+        return borrowOrdersService.handleNotify(params);
     }
 
     // todo： 争议订单

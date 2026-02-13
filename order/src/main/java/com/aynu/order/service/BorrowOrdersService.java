@@ -8,6 +8,7 @@ import com.aynu.order.domain.vo.BorrowOrdersVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
 
@@ -32,7 +33,7 @@ public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
 
     String payBorrowOrders(BorrowPayDTO dto);
 
-    String handleNotify(HttpServletRequest request);
+    String handleNotify(Map<String, String> params);
 
     void syncWithAlipay(String orderNo);
 }

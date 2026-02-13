@@ -3,6 +3,7 @@ package com.aynu.order.config;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.AlipayConfig;
 import com.alipay.api.DefaultAlipayClient;
+import com.aynu.common.exceptions.BadRequestException;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -19,22 +20,35 @@ public class AlipayProperties {
 
     private String appId;
 
+    private String gatewayUrl;
+
+    private String returnUrl;
+
+    private String notifyUrl;
+
+    private String format;
+
+    private String charset;
+
+    private String signType;
+
+
     @Bean
     public AlipayClient alipayConfig() {
         AlipayConfig alipayConfig = new AlipayConfig();
-        alipayConfig.setServerUrl("https://openapi-sandbox.dl.alipaydev.com/gateway.do");
+        alipayConfig.setServerUrl(gatewayUrl);
         alipayConfig.setAppId(appId);
         alipayConfig.setPrivateKey(privateKey);
-        alipayConfig.setFormat("json");
+        alipayConfig.setFormat(format);
         alipayConfig.setAlipayPublicKey(alipayPublicKey);
-        alipayConfig.setCharset("UTF-8");
-        alipayConfig.setSignType("RSA2");
+        alipayConfig.setCharset(charset);
+        alipayConfig.setSignType(signType);
 
         AlipayClient alipayClient;
         try {
             alipayClient = new DefaultAlipayClient(alipayConfig);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new BadRequestException("支付宝配置错误");
         }
         return alipayClient;
     }

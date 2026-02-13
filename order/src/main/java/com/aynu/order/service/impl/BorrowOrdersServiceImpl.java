@@ -38,7 +38,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -506,64 +505,83 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         // 4. 构造请求并设置回调地址
         AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
         request.setBizModel(model);
-        // 支付成功后，支付宝服务器会异步请求这个地址，这是修改状态的唯一依据
-        request.setNotifyUrl("https://api.xzxfle.top/os/borrow_orders/pay/notify");
-        // 支付成功后，用户浏览器跳转的地址
-        request.setReturnUrl("http://localhost:3000/pay/success");
+
+        if (StringUtils.hasText(alipayProperties.getNotifyUrl())) {
+            //异步接收地址，公网可访问
+            request.setNotifyUrl(alipayProperties.getNotifyUrl());
+        }
+        if (StringUtils.hasText(alipayProperties.getReturnUrl())) {
+            //同步跳转地址
+            request.setReturnUrl(alipayProperties.getReturnUrl());
+        }
 
         try {
             // 执行请求，获取自动提交的 HTML 表单
             AlipayTradePagePayResponse response = alipayClient.pageExecute(request, "POST");
             if (response.isSuccess()) {
                 log.info("生成支付表单成功，订单号：{}", orderNo);
-                return response.getBody(); // 返回这串 HTML 给前端
+                return response.getBody();
             } else {
-                throw new RuntimeException("支付宝网关响应失败：" + response.getSubMsg());
+                throw new BadRequestException("支付宝网关响应失败：" + response.getSubMsg());
             }
         } catch (AlipayApiException e) {
             log.error("调用支付宝异常", e);
-            throw new RuntimeException("支付系统繁忙");
+            throw new BadRequestException("支付系统繁忙");
         }
     }
 
     @Override
-    public String handleNotify(HttpServletRequest request) {
-        log.info("支付宝异步通知：{}", request);
+    public String handleNotify(Map<String, String> params) {
+        // 1. 记录日志 (直接使用传入的 params)
+        log.info("【支付宝回调】开始处理。收到参数个数: {}", params.size());
 
-        // 1. 获取支付宝 Post 过来的参数
-        Map<String, String> params = new HashMap<>();
-        Map<String, String[]> requestParams = request.getParameterMap();
-        for (String name : requestParams.keySet()) {
-            params.put(name, request.getParameter(name));
+        // 调试专用：打印出接收到的签名
+        log.debug("【支付宝回调】解析后的参数 Map: {}, sign: {}", params, params.get("sign"));
+
+        if (params.isEmpty()) {
+            log.error("【支付宝回调】异常：参数 Map 为空，请检查网关是否截断了 POST Body");
+            return "fail";
         }
 
-        // 2. 验签 (必须通过 SDK 验签，防止伪造请求)
+        // 2. 验签 (必须通过 SDK 验签)
         boolean signVerified;
         try {
-            signVerified = AlipaySignature.rsaCheckV1(params, alipayProperties.getAlipayPublicKey(), "UTF-8", "RSA2");
+            signVerified = AlipaySignature.rsaCheckV1(params,
+                    alipayProperties.getAlipayPublicKey(),
+                    alipayProperties.getCharset(),
+                    alipayProperties.getSignType());
         } catch (AlipayApiException e) {
-            log.error("支付宝验签异常", e);
+            log.error("【支付宝回调】验签系统异常", e);
             return "fail";
         }
 
-        if (signVerified) {
-            // 3. 验签通过，检查交易状态
-            String tradeStatus = params.get("trade_status");
-            String orderNo = params.get("out_trade_no");
+        if (!signVerified) {
+            log.warn("【支付宝回调】验签失败！参数: {}", params);
+            return "fail";
+        }
 
-            if ("TRADE_SUCCESS".equals(tradeStatus)) {
-                // 4. 修改订单状态 (内部需判断是否已处理，保证幂等)
-                lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
-                        .eq(BorrowOrdersPO::getStatus, 2)
-                        .set(BorrowOrdersPO::getStatus, 3)
-                        .update();
-                log.info("支付宝异步通知：订单 {} 支付成功", orderNo);
+        // 3. 验签通过，处理业务逻辑
+        String tradeStatus = params.get("trade_status");
+        String orderNo = params.get("out_trade_no");
+
+        log.info("【支付宝回调】验签通过。订单号: {}, 交易状态: {}", orderNo, tradeStatus);
+
+        if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
+            // 4. 修改订单状态 (status=2 确保幂等)
+            boolean updateResult = lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
+                    .eq(BorrowOrdersPO::getStatus, 2)
+                    .set(BorrowOrdersPO::getStatus, 3)
+                    .update();
+
+            if (updateResult) {
+                log.info("【支付宝回调】订单 {} 状态更新成功 -> 已支付", orderNo);
+            } else {
+                log.info("【支付宝回调】订单 {} 状态已在之前更新过，跳过本次处理", orderNo);
             }
-            return "success";
-        } else {
-            log.warn("支付宝异步通知验签失败");
-            return "fail";
         }
+
+        // 5. 返回 success 给支付宝
+        return "success";
     }
 
     @Override

@@ -30,14 +30,15 @@ public class OrderSyncTask {
         try {
             log.info("开始执行支付补偿定时任务...");
 
-            // 2. 查询 15 分钟前创建且未支付的订单
+            // 2. 查询近一小时内创建且未支付的订单
             long epochMilli = ZonedDateTime.now()
-                    .minusMinutes(15)
+                    .minusHours(1)
                     .toInstant()
                     .toEpochMilli();
             List<BorrowOrdersPO> borrowOrdersPOS = borrowOrdersService.lambdaQuery()
                     .eq(BorrowOrdersPO::getStatus, 2)
-                    .le(BorrowOrdersPO::getCreatedAt, epochMilli)
+                    .ge(BorrowOrdersPO::getCreatedAt, epochMilli)
+                    .le(BorrowOrdersPO::getCreatedAt, System.currentTimeMillis())
                     .list();
 
             for (BorrowOrdersPO order : borrowOrdersPOS) {
