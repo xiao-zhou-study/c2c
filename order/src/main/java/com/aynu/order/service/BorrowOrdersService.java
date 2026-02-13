@@ -33,4 +33,6 @@ public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
     String payBorrowOrders(BorrowPayDTO dto);
 
     String handleNotify(HttpServletRequest request);
+
+    void syncWithAlipay(String orderNo);
 }

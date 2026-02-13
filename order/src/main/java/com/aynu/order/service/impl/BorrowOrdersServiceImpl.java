@@ -5,9 +5,12 @@ import cn.hutool.core.util.IdUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.domain.AlipayTradePagePayModel;
+import com.alipay.api.domain.AlipayTradeQueryModel;
 import com.alipay.api.internal.util.AlipaySignature;
 import com.alipay.api.request.AlipayTradePagePayRequest;
+import com.alipay.api.request.AlipayTradeQueryRequest;
 import com.alipay.api.response.AlipayTradePagePayResponse;
+import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.aynu.api.client.item.ItemClient;
 import com.aynu.api.client.user.UserClient;
 import com.aynu.api.dto.item.ItemsVO;
@@ -560,6 +563,85 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         } else {
             log.warn("支付宝异步通知验签失败");
             return "fail";
+        }
+    }
+
+    @Override
+    public void syncWithAlipay(String orderNo) {
+        log.info("【支付补偿】开始主动向支付宝查询订单状态，商户订单号：{}", orderNo);
+
+        // 1. 查询本地订单，确认是否真的需要同步（避免无效查询）
+        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
+                .one();
+
+        if (ordersPO == null) {
+            log.warn("【支付补偿】未找到本地订单：{}", orderNo);
+            return;
+        }
+
+        // 如果状态已经不是待付款（status=2），说明已经处理过了，直接返回
+        if (ordersPO.getStatus() != 2) {
+            log.info("【支付补偿】订单 {} 状态已为 {}，无需同步", orderNo, ordersPO.getStatus());
+            return;
+        }
+
+        // 2. 构造支付宝查询请求
+        AlipayTradeQueryModel model = new AlipayTradeQueryModel();
+        model.setOutTradeNo(orderNo);
+
+        AlipayTradeQueryRequest request = new AlipayTradeQueryRequest();
+        request.setBizModel(model);
+
+        try {
+            // 3. 执行查询
+            AlipayTradeQueryResponse response = alipayClient.execute(request);
+
+            if (response.isSuccess()) {
+                String tradeStatus = response.getTradeStatus();
+                log.info("【支付补偿】支付宝响应成功，订单 {} 状态为：{}", orderNo, tradeStatus);
+
+                // 4. 核心逻辑：只有支付成功才更新
+                if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
+
+                    // 安全校验：校验支付宝返回的金额与本地订单金额是否一致
+                    double alipayAmount = Double.parseDouble(response.getTotalAmount());
+                    double localAmount = ordersPO.getTotalAmount()
+                            .doubleValue();
+
+                    if (Math.abs(alipayAmount - localAmount) > 0.01) {
+                        log.error("【支付补偿】严重警告：订单 {} 金额不匹配！支付宝：{}，本地：{}",
+                                orderNo,
+                                alipayAmount,
+                                localAmount);
+                        return;
+                    }
+
+                    // 5. 更新本地订单状态（使用 status=2 作为条件，确保幂等更新）
+                    boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
+                            .eq(BorrowOrdersPO::getStatus, 2)
+                            .set(BorrowOrdersPO::getStatus, 3)
+                            .update();
+
+                    if (updated) {
+                        log.info("【支付补偿】订单 {} 状态同步成功：待付款 -> 已付款", orderNo);
+                    }
+                } else if ("TRADE_CLOSED".equals(tradeStatus)) {
+                    log.info("【支付补偿】订单 {} 在支付宝端已关闭", orderNo);
+//                    lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
+//                            .eq(BorrowOrdersPO::getStatus, 2)
+//                            .set(BorrowOrdersPO::getStatus, 5) // 假设 5 是已关闭
+//                            .update();
+                }
+            } else {
+                // ACQ.TRADE_NOT_EXIST 表示用户还没扫码打开过支付页，支付宝还没生成这笔交易
+                if ("ACQ.TRADE_NOT_EXIST".equals(response.getSubCode())) {
+                    log.info("【支付补偿】支付宝端尚无此订单记录：{}", orderNo);
+                } else {
+                    log.warn("【支付补偿】查询接口返回错误：{}", response.getSubMsg());
+                }
+            }
+        } catch (AlipayApiException e) {
+            log.error("【支付补偿】调用支付宝查询接口发生异常", e);
         }
     }
 
