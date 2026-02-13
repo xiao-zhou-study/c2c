@@ -37,9 +37,9 @@ xy:
   auth:
     resource:
       enable: true
-      excludeLoginPaths: [
-        "/borrow_orders/notify"
-      ]
+      excludeLoginPaths:
+        - /borrow_orders/notify
+
   jdbc:
     database: xy_order
 
