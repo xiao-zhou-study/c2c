@@ -10,7 +10,6 @@ import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
 import org.springframework.cloud.gateway.support.NotFoundException;
 import org.springframework.core.Ordered;
 import org.springframework.http.MediaType;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,8 +17,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.util.annotation.NonNull;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static com.aynu.common.constants.ErrorInfo.Code.FAILED;
@@ -58,7 +55,7 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler, Ordere
         } else {
             message = SERVER_INTER_ERROR;
             // 4.记录日志
-            writeLog(exchange, ex);
+            log.error("网关异常: {}", ex.getMessage(), ex);
         }
         // 5.设置响应结果为 JSON
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -68,31 +65,8 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler, Ordere
         if (requestIds != null) {
             r.requestId(requestIds.get(0));
         }
-        byte[] resp = JsonUtils.toJsonStr(r).getBytes(StandardCharsets.UTF_8);
+        byte[] resp = JsonUtils.toJsonStr(r).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return response.writeWith(Mono.fromSupplier(() -> response.bufferFactory().wrap(resp)));
-    }
-
-    private void writeLog(ServerWebExchange exchange, Throwable ex) {
-        ServerHttpRequest request = exchange.getRequest();
-        URI uri = request.getURI();
-        String host = uri.getHost();
-        int port = uri.getPort();
-        String method = request.getMethodValue();
-        String path = request.getPath().toString();
-        String remoteAddr = request.getRemoteAddress() != null ? request.getRemoteAddress().getAddress().getHostAddress() : "unknown";
-        
-        log.error("========================================");
-        log.error("【网关路由异常】");
-        log.error("请求方法: {}", method);
-        log.error("请求路径: {}", path);
-        log.error("远程IP: {}", remoteAddr);
-        log.error("目标Host: {}", host);
-        log.error("目标端口: {}", port);
-        log.error("完整URI: {}", uri);
-        log.error("异常类型: {}", ex.getClass().getName());
-        log.error("========================================");
-        log.error("异常详情:", ex);
-        log.error("========================================");
     }
 
     @Override
