@@ -2067,9 +2067,9 @@
 ## 10.订单管理模块
 ### 10.1 创建借用订单接口
 
-**POST** `http://localhost:8080/os/orders`
+**POST** `http://localhost:8080/borrow_orders/create`
 
-**说明**：借用者提交借用申请时调用此接口。创建订单后，系统会通知物品持有者进行审批，物品状态将同步变更为“申请中”。
+**说明**：用户提交借用申请，创建新的借用订单。调用此接口需要提供物品 ID、计划借用的起止时间以及借用用途。系统验证通过后将生成订单记录，并返回订单唯一 ID。
 
 **Parameters**
 
@@ -2081,76 +2081,87 @@
 
 | 字段名 | 字段类型 | 是否必填 | 字段解释 |
 | --- | --- | --- | --- |
-| itemId | Long | 是 | 申请借用的物品 ID |
-| borrowDays | Integer | 是 | 预期的借用时长（天） |
-| purpose | String | 否 | 借用用途详细说明（最多 500 字） |
+| itemId | Long | 是 | 关联物品的唯一 ID |
+| plannedStartTime | Long | 是 | 预约借用开始时间戳（毫秒） |
+| plannedEndTime | Long | 是 | 预约借用结束时间戳（毫秒） |
+| purpose | String | 是 | 借用用途详细说明 |
 
 **Returns**
 
 ```json
 {
   "code": 0,
-  "msg": "申请成功",
-  "ts": 1738831385000,
-  "data": 400512345678    // 返回新创建的订单 ID
+  "msg": "订单创建成功",
+  "ts": 1739452273000,
+  "data": "1890123456789012345"
 }
 
 ```
 
-### 10.2 获取订单列表接口
+### 10.2 分页获取我借出的订单接口
 
-**GET** `http://localhost:8080/os/orders`
+**GET** `http://localhost:8080/borrow_orders/page/out`
 
-**说明**：分页获取借用订单列表。支持根据订单状态、物品 ID、借用人或出借人 ID 进行多维度筛选。常用于“我的借入”和“我的借出”页面展示。
+**说明**：获取当前用户作为**出借人**（Lender）所拥有的订单列表。支持根据订单状态、关键词（如物品名称、借用人姓名）以及订单创建时间进行筛选。常用于个人中心的“我借出的”模块。
 
 **Parameters**
 
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| status | Query | Integer | 否 | 订单状态：1-申请中, 2-已确认, 3-借用中, 4-已归还, 5-已取消, 6-已拒绝 |
-| itemId | Query | Long | 否 | 关联的物品 ID |
-| borrowerId | Query | Long | 否 | 借用人 ID |
-| lenderId | Query | Long | 否 | 出借人 ID |
-| type | Query | String | 否 | 订单分类 |
-| pageNo | Query | Integer | 否 | 页码（默认 1） |
-| pageSize | Query | Integer | 否 | 每页条数（默认 20） |
-| sortBy | Query | String | 否 | 排序字段 |
-| isAsc | Query | Boolean | 否 | 是否升序（默认 true） |
+| 字段名 | 位置 | 字段类型 | 是否必填 | 默认值 | 字段解释 |
+| --- | --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | - | 用户登录访问令牌 |
+| pageNo | Query | Integer | 否 | 1 | 当前页码 |
+| pageSize | Query | Integer | 否 | 20 | 每页展示条数 |
+| status | Query | Integer | 否 | - | 订单状态 (1-待确认, 3-借用中, 5-已完成等) |
+| keyword | Query | String | 否 | - | 搜索关键词 (模糊匹配物品名或借用人) |
+| startTime | Query | Long | 否 | - | 筛选范围：订单创建开始时间戳 |
+| endTime | Query | Long | 否 | - | 筛选范围：订单创建结束时间戳 |
+| sortBy | Query | String | 否 | - | 排序字段 |
+| isAsc | Query | Boolean | 否 | true | 是否升序 |
 
-**Returns**
+**Returns (application/json)**
 
 ```json
 {
   "code": 0,
   "msg": "查询成功",
-  "ts": 1738831445000,
+  "ts": 1739452339000,
   "data": {
-    "total": 50,
-    "pages": 3,
+    "total": 12,
+    "pages": 1,
     "list": [
       {
-        "id": 400512345678,
-        "itemId": 2004599137584095001,
-        "title": "大疆手持稳定器",
-        "borrowerId": 2004151376778743001,
-        "borrowerName": "借用人小王",
-        "borrowerAvatar": "http://img.com/avatar_borrower.png",
-        "lenderId": 2004151376778743810,
-        "lenderName": "出借人小李",
-        "lenderAvatar": "http://img.com/avatar_lender.png",
-        "price": 15.00,
-        "billingType": "PER_DAY", // 计费类型：PER_DAY, PER_WEEK, PER_MONTH
-        "deposit": 200.00,
-        "borrowDays": 3,
-        "totalAmount": 45.00,
-        "purpose": "用于周末社团拍摄活动",
-        "status": "BORROWING", // 状态：APPLYING, CONFIRMED, BORROWING, RETURNED, CANCELLED, REJECTED
-        "borrowTime": 1707210000000,
-        "returnTime": 1707469200000,
+        "id": 1001,
+        "orderNo": "BOR20260213123456",
+        "itemId": 5001,
+        "itemName": "专业单反相机",
+        "itemImages": ["http://img.top/item1.jpg"],
+        "borrowerId": 2001,
+        "borrowerName": "王小明",
+        "borrowerAvatar": "http://img.top/avatar/b1.jpg",
+        "lenderId": 2002,
+        "lenderName": "我（当前用户）",
+        "lenderAvatar": "http://img.top/avatar/me.jpg",
+        "title": "借用专业单反相机",
+        "price": 50.00,
+        "billingType": 1,
+        "deposit": 500.00,
+        "borrowDays": 3.0,
+        "totalAmount": 650.00,
+        "status": 3,
+        "purpose": "摄影社团拍摄活动",
+        "plannedStartTime": 1739452800000,
+        "plannedEndTime": 1739712000000,
+        "confirmTime": 1739452300000,
+        "payTime": 1739452310000,
+        "payTradeNo": "WX123456789",
+        "borrowTime": 1739452320000,
+        "expectReturnTime": 1739712000000,
         "actualReturnTime": null,
+        "refundTime": null,
         "cancelReason": null,
-        "createdAt": 1707100000000,
-        "updatedAt": 1707210000000
+        "version": 4,
+        "createdAt": 1739452200000,
+        "updatedAt": 1739452320000
       }
     ]
   }
@@ -2158,92 +2169,82 @@
 
 ```
 
-### 10.3 获取订单详情接口
+### 10.3 分页获取我借用的订单接口
 
-**GET** `http://localhost:8080/os/orders/{orderId}`
+**GET** `http://localhost:8080/borrow_orders/page/in`
 
-**说明**：根据订单 ID 获取完整的订单详细信息。包含物品基础信息、借贷双方信息、计费详情、订单当前状态以及各阶段的时间戳。
+**说明**：获取当前用户作为**借用人**（Borrower）所发起的订单列表。支持根据订单状态、关键词（模糊匹配物品名或出借人姓名）以及时间范围进行筛选。常用于个人中心的“我借入的”模块。
 
 **Parameters**
 
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-| orderId | Path | Long | 是 | 订单唯一 ID |
+| 字段名 | 位置 | 字段类型 | 是否必填 | 默认值 | 字段解释 |
+| --- | --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | - | 用户登录访问令牌 |
+| pageNo | Query | Integer | 否 | 1 | 当前页码 |
+| pageSize | Query | Integer | 否 | 20 | 每页展示条数 |
+| status | Query | Integer | 否 | - | 订单状态 (1-待确认, 2-待付款, 3-借用中等) |
+| keyword | Query | String | 否 | - | 搜索关键词 (模糊匹配物品名或出借人) |
+| startTime | Query | Long | 否 | - | 筛选范围：订单创建开始时间戳 |
+| endTime | Query | Long | 否 | - | 筛选范围：订单创建结束时间戳 |
+| sortBy | Query | String | 否 | - | 排序字段 |
+| isAsc | Query | Boolean | 否 | true | 是否升序 |
 
-**Returns**
+**Returns (application/json)**
 
 ```json
 {
   "code": 0,
   "msg": "查询成功",
-  "ts": 1738831500000,
+  "ts": 1739452385000,
   "data": {
-    "id": 400512345678,
-    "itemId": 2004599137584095001,
-    "title": "大疆手持稳定器",
-    "borrowerId": 2004151376778743001,
-    "borrowerName": "借用人小王",
-    "borrowerAvatar": "http://img.com/avatar_borrower.png",
-    "lenderId": 2004151376778743810,
-    "lenderName": "出借人小李",
-    "lenderAvatar": "http://img.com/avatar_lender.png",
-    "price": 15.00,
-    "billingType": "PER_DAY",
-    "deposit": 200.00,
-    "borrowDays": 3,
-    "totalAmount": 45.00,
-    "purpose": "用于周末社团拍摄活动",
-    "status": "BORROWING",
-    "borrowTime": 1707210000000,
-    "returnTime": 1707469200000,
-    "actualReturnTime": null,
-    "cancelReason": null,
-    "createdAt": 1707100000000,
-    "updatedAt": 1707210000000
+    "total": 8,
+    "pages": 1,
+    "list": [
+      {
+        "id": 2005,
+        "orderNo": "BOR20260213889900",
+        "itemId": 6012,
+        "itemName": "手持云台稳定器",
+        "itemImages": ["http://img.top/gimbal.png"],
+        "borrowerId": 2002,
+        "borrowerName": "我（当前用户）",
+        "borrowerAvatar": "http://img.top/avatar/me.jpg",
+        "lenderId": 3005,
+        "lenderName": "李华",
+        "lenderAvatar": "http://img.top/avatar/l5.jpg",
+        "title": "借用手持云台稳定器",
+        "price": 20.00,
+        "billingType": 1,
+        "deposit": 200.00,
+        "borrowDays": 2.0,
+        "totalAmount": 240.00,
+        "status": 2,
+        "purpose": "周末郊游Vlog拍摄",
+        "plannedStartTime": 1739581200000,
+        "plannedEndTime": 1739754000000,
+        "confirmTime": 1739452000000,
+        "payTime": null,
+        "payTradeNo": null,
+        "borrowTime": null,
+        "expectReturnTime": 1739754000000,
+        "actualReturnTime": null,
+        "refundTime": null,
+        "cancelReason": null,
+        "version": 2,
+        "createdAt": 1739451000000,
+        "updatedAt": 1739452000000
+      }
+    ]
   }
 }
 
 ```
 
-### 10.4 更新订单信息接口
+### 10.4 同意借用订单接口
 
-**PUT** `http://localhost:8080/os/orders/{orderId}`
+**PUT** `http://localhost:8080/borrow_orders/agree`
 
-**说明**：根据订单 ID 修改订单的相关信息。该接口通常用于在订单尚未进入锁定状态（如“借用中”或“已完成”）之前，对借用天数、用途说明等字段进行调整。
-
-**Parameters**
-
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-| orderId | Path | Long | 是 | 待更新的订单唯一 ID |
-
-**Request Body (application/json)**
-
-| 字段名 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- |
-| borrowDays | Integer | 否 | 借用天数 |
-| purpose | String | 否 | 借用用途说明 |
-| ... | Object | 否 | 其他需要更新的订单属性键值对 |
-
-**Returns**
-
-```json
-{
-  "code": 0,
-  "msg": "更新成功",
-  "ts": 1738831560000,
-  "data": true      // 更新是否成功：true-成功，false-失败
-}
-
-```
-
-### 10.5 取消订单接口
-
-**PUT** `http://localhost:8080/os/orders/cancel`
-
-**说明**：借用人或出借人在订单达成前可发起取消操作。调用后订单状态将变更为 `CANCELLED`。若订单已进入“借用中”状态，通常不可直接取消，需走归还流程。
+**说明**：出借人（Lender）通过此接口同意借用人的借用申请。执行该操作后，订单状态通常从“待确认”流转至“待付款”。为了保证数据一致性，接口需要上传当前数据的版本号进行乐观锁校验。
 
 **Parameters**
 
@@ -2255,26 +2256,26 @@
 
 | 字段名 | 字段类型 | 是否必填 | 字段解释 |
 | --- | --- | --- | --- |
-| orderId | Long | 是 | 待取消的订单 ID |
-| reason | String | 否 | 取消原因说明 |
+| id | String | 是 | 借用订单唯一 ID |
+| version | Integer | 是 | 乐观锁版本号（通过列表或详情接口获取） |
 
 **Returns**
 
 ```json
 {
   "code": 0,
-  "msg": "订单已取消",
-  "ts": 1738831620000,
-  "data": true      // 操作是否成功
+  "msg": "已同意借用申请",
+  "ts": 1739452423000,
+  "data": {}
 }
 
 ```
 
-### 10.6 确认订单接口
+### 10.5 拒绝借用订单接口
 
-**PUT** `http://localhost:8080/os/orders/confirm`
+**PUT** `http://localhost:8080/borrow_orders/reject`
 
-**说明**：出借人收到借用申请后，通过此接口确认订单。确认后订单状态将由 `APPLYING` 变更为 `CONFIRMED`，标志着借贷双方已达成初步意向，等待物品实际交付。
+**说明**：出借人（Lender）通过此接口拒绝借用人的借用申请。执行该操作后，订单状态将流转至“已拒绝”。调用时需填写拒绝原因，并上传当前数据的版本号进行乐观锁校验，以确保操作的准确性。
 
 **Parameters**
 
@@ -2286,25 +2287,27 @@
 
 | 字段名 | 字段类型 | 是否必填 | 字段解释 |
 | --- | --- | --- | --- |
-| orderId | Long | 是 | 待确认的订单 ID |
+| id | String | 是 | 借用订单唯一 ID |
+| reason | String | 是 | 拒绝借用的具体原因说明 |
+| version | Integer | 是 | 乐观锁版本号（通过列表或详情接口获取） |
 
 **Returns**
 
 ```json
 {
   "code": 0,
-  "msg": "订单已确认",
-  "ts": 1738831680000,
-  "data": true      // 操作是否成功
+  "msg": "已拒绝该借用申请",
+  "ts": 1739452458000,
+  "data": {}
 }
 
 ```
 
-### 10.7 拒绝订单接口
+### 10.6 取消借用订单接口
 
-**PUT** `http://localhost:8080/os/orders/reject`
+**PUT** `http://localhost:8080/borrow_orders/cancel`
 
-**说明**：出借人如果不方便借出物品，可以通过此接口拒绝借用申请。调用后订单状态将变更为 `REJECTED`，系统通常会要求提供拒绝原因以告知借用者。
+**说明**：借用人（Borrower）在订单处于“待确认”或“待付款”等阶段时，可以通过此接口主动取消借用订单。取消后，订单状态将流转至“已取消”。调用时需提供订单号，并上传当前数据的版本号进行乐观锁校验，以防止并发操作冲突。
 
 **Parameters**
 
@@ -2316,26 +2319,26 @@
 
 | 字段名 | 字段类型 | 是否必填 | 字段解释 |
 | --- | --- | --- | --- |
-| orderId | Long | 是 | 待拒绝的订单 ID |
-| reason | String | 否 | 拒绝原因说明 |
+| orderNo | String | 是 | 借用订单编号（商户单号） |
+| version | Integer | 是 | 乐观锁版本号（通过列表或详情接口获取） |
 
 **Returns**
 
 ```json
 {
   "code": 0,
-  "msg": "已拒绝该申请",
-  "ts": 1738831740000,
-  "data": true      // 操作是否成功
+  "msg": "订单已成功取消",
+  "ts": 1739452488000,
+  "data": {}
 }
 
 ```
 
-### 10.8 开始借用接口
+### 10.7 归还借用订单接口
 
-**PUT** `http://localhost:8080/os/orders/borrow`
+**PUT** `http://localhost:8080/borrow_orders/return`
 
-**说明**：在出借人交付物品给借用人时调用此接口。调用后，订单状态将变更为 `BORROWING`（借用中），并记录当前时间为实际借出时间。此时物品正式进入租赁阶段。
+**说明**：借用人（Borrower）在物品使用完毕后，通过此接口发起归还请求。执行该操作后，订单状态将流转至“待归还确认”。此时需要出借人对物品状态进行核验。调用时需上传订单号及版本号，以确保基于最新的订单状态进行操作。
 
 **Parameters**
 
@@ -2347,25 +2350,26 @@
 
 | 字段名 | 字段类型 | 是否必填 | 字段解释 |
 | --- | --- | --- | --- |
-| orderId | Long | 是 | 关联的订单 ID |
+| orderNo | String | 是 | 借用订单编号（商户单号） |
+| version | Integer | 是 | 乐观锁版本号（通过列表或详情接口获取） |
 
 **Returns**
 
 ```json
 {
   "code": 0,
-  "msg": "已开始借用",
-  "ts": 1738831800000,
-  "data": true      // 操作是否成功
+  "msg": "已发起归还请求，请等待出借人确认",
+  "ts": 1739452520000,
+  "data": {}
 }
 
 ```
 
-### 10.9 归还物品接口
+### 10.8 确认归还订单接口
 
-**PUT** `http://localhost:8080/os/orders/return`
+**PUT** `http://localhost:8080/borrow_orders/confirm`
 
-**说明**：当出借人确认收到归还的物品后，通过此接口完成订单。调用后，订单状态将变更为 `RETURNED`（已归还），系统记录实际归还时间戳。此时借用流程正式结束，用户可进入评价环节。
+**说明**：出借人（Lender）在收到归还物品并核验无误后，通过此接口完成归还确认。执行该操作后，订单状态将流转至“已完成”。该步骤通常会触发押金退还逻辑（如有）及系统结算。调用时需上传订单号及版本号进行乐观锁校验。
 
 **Parameters**
 
@@ -2377,125 +2381,26 @@
 
 | 字段名 | 字段类型 | 是否必填 | 字段解释 |
 | --- | --- | --- | --- |
-| orderId | Long | 是 | 关联的订单 ID |
+| orderNo | String | 是 | 借用订单编号（商户单号） |
+| version | Integer | 是 | 乐观锁版本号（通过列表或详情接口获取） |
 
 **Returns**
 
 ```json
 {
   "code": 0,
-  "msg": "物品已成功归还",
-  "ts": 1738831860000,
-  "data": true      // 操作是否成功
+  "msg": "归还确认成功，订单已完成",
+  "ts": 1739452568000,
+  "data": {}
 }
 
 ```
 
-### 10.10 根据物品ID查询订单列表接口
+### 10.9 订单付款接口
 
-**GET** `http://localhost:8080/os/orders/item/{itemId}`
+**PUT** `http://localhost:8080/borrow_orders/pay`
 
-**说明**：获取指定物品的所有历史及当前订单记录。该接口通常用于物品持有者查看特定物品的流转记录，或用于系统后台对特定物品的租赁情况进行追溯。
-
-**Parameters**
-
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-| itemId | Path | Long | 是 | 物品唯一 ID |
-
-**Returns**
-
-```json
-{
-  "code": 0,
-  "msg": "查询成功",
-  "ts": 1738831920000,
-  "data": [
-    {
-      "id": 400512345678,
-      "itemId": 2004599137584095001,
-      "title": "大疆手持稳定器",
-      "borrowerId": 2004151376778743001,
-      "borrowerName": "借用人小王",
-      "borrowerAvatar": "http://img.com/avatar_borrower.png",
-      "lenderId": 2004151376778743810,
-      "lenderName": "出借人小李",
-      "lenderAvatar": "http://img.com/avatar_lender.png",
-      "price": 15.00,
-      "billingType": "PER_DAY",
-      "deposit": 200.00,
-      "borrowDays": 3,
-      "totalAmount": 45.00,
-      "purpose": "摄影课作业使用",
-      "status": "RETURNED",
-      "borrowTime": 1707210000000,
-      "returnTime": 1707469200000,
-      "actualReturnTime": 1707465600000,
-      "cancelReason": null,
-      "createdAt": 1707100000000,
-      "updatedAt": 1707465600000
-    }
-  ]
-}
-
-```
-
-### 10.11 获取订单操作日志接口
-
-**GET** `http://localhost:8080/os/orders/{orderId}/logs`
-
-**说明**：查询指定订单的全生命周期操作流水。日志按时间顺序记录了从“提交申请”到“归还完成”期间每一个关键节点的操作人、具体行为及备注信息，用于处理订单纠纷或追踪订单状态变更历史。
-
-**Parameters**
-
-| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
-| --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | 用户登录访问令牌 |
-| orderId | Path | Long | 是 | 订单唯一 ID |
-
-**Returns**
-
-```json
-{
-  "code": 0,
-  "msg": "查询成功",
-  "ts": 1738832100000,
-  "data": [
-    {
-      "id": 1001,
-      "orderId": 400512345678,
-      "operatorId": 2004151376778743001,
-      "action": "提交申请",
-      "remark": "借用天数：3天，用途：拍摄社团活动",
-      "createdAt": 1707100000000
-    },
-    {
-      "id": 1005,
-      "orderId": 400512345678,
-      "operatorId": 2004151376778743810,
-      "action": "确认订单",
-      "remark": "准许借出",
-      "createdAt": 1707105000000
-    },
-    {
-      "id": 1012,
-      "orderId": 400512345678,
-      "operatorId": 2004151376778743810,
-      "action": "开始借用",
-      "remark": "物品已当面交付，状态良好",
-      "createdAt": 1707210000000
-    }
-  ]
-}
-
-```
-
-### 10.12 获取借用统计接口
-
-**GET** `http://localhost:8080/os/orders/stats`
-
-**说明**：获取当前登录用户的综合借用统计数据。包含作为借用者（借入）和作为出借者（借出）的累计订单量、待处理任务数及金额统计，常用于用户中心概览页面的数字化展示。
+**说明**：借用人（Borrower）在申请被同意后，通过此接口对借用订单进行支付。执行该操作后，订单状态将由“待付款”流转至“借用中”。接口会返回支付相关的凭证或状态信息，并使用版本号进行乐观锁校验以确保交易安全。
 
 **Parameters**
 
@@ -2503,27 +2408,21 @@
 | --- | --- | --- | --- | --- |
 | Authorization | Header | String | 是 | 用户登录访问令牌 |
 
-**Returns**
+**Request Body (application/json)**
+
+| 字段名 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- |
+| orderNo | String | 是 | 借用订单编号（商户单号） |
+| version | Integer | 是 | 乐观锁版本号（通过列表或详情接口获取） |
+
+**Returns (application/json)**
 
 ```json
 {
   "code": 0,
-  "msg": "查询成功",
-  "ts": 1738832160000,
-  "data": {
-    "borrowStats": {          // 借入统计（作为借用者）
-      "totalCount": 12,       // 累计借入次数
-      "pendingConfirm": 2,    // 待对方确认的申请
-      "activeOrders": 1,      // 正在借用中的物品数
-      "totalSpent": 450.00    // 累计支出租金
-    },
-    "lendingStats": {         // 借出统计（作为出借者）
-      "totalCount": 25,       // 累计借出次数
-      "toProcess": 3,         // 待处理的借用申请
-      "lendingOrders": 5,     // 当前处于借出状态的订单
-      "totalEarned": 1280.00  // 累计收入租金
-    }
-  }
+  "msg": "支付跳转中或支付成功",
+  "ts": 1739452605000,
+  "data": "SUCCESS"
 }
 
 ```
