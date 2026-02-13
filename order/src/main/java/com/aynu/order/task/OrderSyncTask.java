@@ -2,10 +2,10 @@ package com.aynu.order.task;
 
 import com.aynu.order.domain.po.BorrowOrdersPO;
 import com.aynu.order.service.BorrowOrdersService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -14,13 +14,11 @@ import java.util.List;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class OrderSyncTask {
 
-    @Autowired
-    private BorrowOrdersService borrowOrdersService;
-
-    @Autowired
-    private RedissonClient redissonClient;
+    private final BorrowOrdersService borrowOrdersService;
+    private final RedissonClient redissonClient;
 
     // 每5分钟执行一次
     @Scheduled(cron = "0 0/5 * * * ?")
@@ -39,8 +37,7 @@ public class OrderSyncTask {
                     .toEpochMilli();
             List<BorrowOrdersPO> borrowOrdersPOS = borrowOrdersService.lambdaQuery()
                     .eq(BorrowOrdersPO::getStatus, 2)
-                    .ge(BorrowOrdersPO::getCreatedAt, epochMilli)
-                    .le(BorrowOrdersPO::getCreatedAt, System.currentTimeMillis())
+                    .le(BorrowOrdersPO::getCreatedAt, epochMilli)
                     .list();
 
             for (BorrowOrdersPO order : borrowOrdersPOS) {

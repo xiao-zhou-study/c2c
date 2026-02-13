@@ -5,6 +5,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
@@ -17,6 +18,7 @@ import java.util.Optional;
  */
 @Slf4j
 @SpringBootApplication
+@EnableScheduling
 @MapperScan("com.aynu.order.mapper")
 public class OrderApplication {
 
