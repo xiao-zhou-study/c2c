@@ -49,7 +49,7 @@ alipay:
   appId: "9021000144676990"
   gatewayUrl: https://openapi-sandbox.dl.alipaydev.com/gateway.do
   returnUrl: https://www.xzxfle.top/pay/success
-  notifyUrl: https://api.xzxfle.top/os/borrow_orders/pay/notify
+  notifyUrl: https://api.xzxfle.top/os/borrow_orders/notify
   format: JSON
   charset: UTF-8
   signType: RSA2
