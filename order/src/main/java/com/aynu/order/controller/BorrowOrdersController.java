@@ -127,12 +127,16 @@ public class BorrowOrdersController {
         return borrowOrdersService.payBorrowOrders(dto);
     }
 
+    /**
+     * 回调接口
+     *
+     * @param request 请求
+     * @return 状态
+     */
     @PostMapping("/notify")
     public String handleNotify(HttpServletRequest request) {
         return borrowOrdersService.handleNotify(request);
     }
-
-    // todo : 订单剩余接口 付款
 
     // todo： 争议订单
 

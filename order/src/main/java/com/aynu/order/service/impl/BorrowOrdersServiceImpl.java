@@ -44,6 +44,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.aynu.common.constants.MqConstants.Exchange.ORDER_DELAY_EXCHANGE;
 import static com.aynu.common.constants.MqConstants.Exchange.ORDER_EXCHANGE;
 import static com.aynu.common.constants.MqConstants.Key.*;
 import static com.aynu.common.enums.NotifyTypeEnum.*;
@@ -153,10 +154,10 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         OrderNotifyMessage notifyMsg = new OrderNotifyMessage(borrowOrdersPO.getLenderId(),
                 borrowOrdersPO.getOrderNo(),
                 BORROW_MESSAGE.getValue());
-        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, notifyMsg);
+        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(notifyMsg));
 
         // 延迟关单消息：24小时后检查状态
-        rabbitMqHelper.sendDelayMessage(ORDER_EXCHANGE,
+        rabbitMqHelper.sendDelayMessage(ORDER_DELAY_EXCHANGE,
                 ORDER_DELAY_KEY,
                 borrowOrdersPO.getOrderNo(),
                 Duration.ofDays(1L));
@@ -337,13 +338,13 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         OrderNotifyMessage notifyMsg = new OrderNotifyMessage(currentOrder.getBorrowerId(),
                 currentOrder.getOrderNo(),
                 REVIEW_MESSAGE.getValue());
-        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, notifyMsg);
 
         List<BorrowOrdersPO> borrowOrdersPOS = lambdaQuery().eq(BorrowOrdersPO::getItemId, itemId)
                 .eq(BorrowOrdersPO::getStatus, 7)
                 .list();
 
         List<OrderNotifyMessage> rejectMsgList = new ArrayList<>();
+        rejectMsgList.add(notifyMsg);
 
         if (CollUtil.isNotEmpty(borrowOrdersPOS)) {
             rejectMsgList = borrowOrdersPOS.stream()
@@ -387,7 +388,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         orderNotifyMessage.setOrderNo(ordersPO.getOrderNo());
         orderNotifyMessage.setType(REVIEW_MESSAGE.getValue());
 
-        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, orderNotifyMessage);
+        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(orderNotifyMessage));
 
 
     }
@@ -432,9 +433,9 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                 orderNo,
                 RETURN_MESSAGE.getValue());
 
-        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, orderNotifyMessage);
+        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(orderNotifyMessage));
 
-        rabbitMqHelper.sendDelayMessage(ORDER_EXCHANGE, ORDER_RETURN_DELAY_KEY, orderNo, Duration.ofDays(7));
+        rabbitMqHelper.sendDelayMessage(ORDER_DELAY_EXCHANGE, ORDER_RETURN_DELAY_KEY, orderNo, Duration.ofDays(7));
 
     }
 
@@ -468,7 +469,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         OrderNotifyMessage orderNotifyMessage = new OrderNotifyMessage(ordersPO.getBorrowerId(),
                 orderNo,
                 RETURN_MESSAGE.getValue());
-        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, orderNotifyMessage);
+        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(orderNotifyMessage));
     }
 
     @Override
@@ -544,7 +545,6 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             // 3. 验签通过，检查交易状态
             String tradeStatus = params.get("trade_status");
             String orderNo = params.get("out_trade_no");
-            String tradeNo = params.get("trade_no"); // 支付宝流水号
 
             if ("TRADE_SUCCESS".equals(tradeStatus)) {
                 // 4. 修改订单状态 (内部需判断是否已处理，保证幂等)

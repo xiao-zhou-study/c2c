@@ -26,7 +26,7 @@ public class ItemClientFallback implements FallbackFactory<ItemClient> {
             }
 
             @Override
-            public void batchUpdateStatus(Iterable<Long> ids, int value) {
+            public void batchUpdateStatus(Iterable<Long> ids, Integer value) {
 
             }
         };

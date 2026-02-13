@@ -28,5 +28,5 @@ public interface ItemClient {
 
 
     @PutMapping("/items/batch/status")
-    void batchUpdateStatus(@RequestParam Iterable<Long> ids, @RequestParam int value);
+    void batchUpdateStatus(@RequestParam Iterable<Long> ids, @RequestParam Integer status);
 }

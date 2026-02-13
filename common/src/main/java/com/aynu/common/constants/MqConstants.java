@@ -14,6 +14,8 @@ public interface MqConstants {
         /*订单有关的交换机*/
         String ORDER_EXCHANGE = "order.topic";
 
+        String ORDER_DELAY_EXCHANGE = "order.delay.topic";
+
         /*学习有关的交换机*/
         String LEARNING_EXCHANGE = "learning.topic";
 
