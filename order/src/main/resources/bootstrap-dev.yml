@@ -12,3 +12,7 @@ spring:
 logging:
   level:
     com.aynu: debug
+
+
+alipay:
+  returnUrl: https://www.xzxfle.top/pay/success

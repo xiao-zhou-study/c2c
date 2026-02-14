@@ -36,4 +36,6 @@ public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
     String handleNotify(Map<String, String> params);
 
     void syncWithAlipay(String orderNo);
+
+    BorrowOrdersVO getBorrowOrdersDetail(String orderNo);
 }

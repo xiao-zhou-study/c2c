@@ -72,6 +72,17 @@ public class BorrowOrdersController {
     }
 
     /**
+     * 获取单个订单详情
+     *
+     * @param orderNo 订单编号
+     * @return 借用订单详情
+     */
+    @GetMapping("/detail")
+    public BorrowOrdersVO getBorrowOrdersDetail(@RequestParam String orderNo) {
+        return borrowOrdersService.getBorrowOrdersDetail(orderNo);
+    }
+
+    /**
      * 同意借用订单
      *
      * @param dto dto

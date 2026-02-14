@@ -1,5 +1,6 @@
 package com.aynu.order.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.IdUtil;
 import com.alipay.api.AlipayApiException;
@@ -33,7 +34,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -41,6 +43,8 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -58,10 +62,10 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
     private final ItemClient itemClient;
     private final RabbitMqHelper rabbitMqHelper;
-    private final StringRedisTemplate stringRedisTemplate;
     private final UserClient userClient;
     private final AlipayClient alipayClient;
     private final AlipayProperties alipayProperties;
+    private final RedissonClient redissonClient;
 
 
     @Override
@@ -71,100 +75,106 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         Long itemId = dto.getItemId();
 
         String lockKey = "order:lock:" + userId + ":" + itemId;
+        RLock lock = redissonClient.getLock(lockKey);
 
-        Boolean isFirstSubmit = stringRedisTemplate.opsForValue()
-                .setIfAbsent(lockKey, "1", Duration.ofDays(1L));
-
-        if (Boolean.FALSE.equals(isFirstSubmit)) {
+        boolean locked = lock.tryLock();
+        if (!locked) {
             log.warn("触发幂等校验，请勿重复提交订单，userId: {}, itemId: {}", userId, itemId);
             throw new BadRequestException("您已提交过该物品的申请，请耐心等待出借人处理");
         }
 
-        ItemsVO item = itemClient.getById(itemId);
-        if (item == null) {
-            log.error("物品不存在，itemId：{}", itemId);
-            throw new BadRequestException("物品不存在");
+        try {
+            ItemsVO item = itemClient.getById(itemId);
+            if (item == null) {
+                log.error("物品不存在，itemId：{}", itemId);
+                throw new BadRequestException("物品不存在");
+            }
+            if (item.getOwnerId()
+                    .equals(userId)) {
+                log.error("不能借用属于自己的物品，itemId：{}", itemId);
+                throw new BadRequestException("不能借用属于自己的物品");
+            }
+            if (ItemStatus.AVAILABLE.getValue() != item.getStatus()) {
+                log.error("物品不可借用，itemId：{}", itemId);
+                throw new BadRequestException("物品状态异常");
+            }
+
+            Long plannedStartTime = dto.getPlannedStartTime();
+            Long plannedEndTime = dto.getPlannedEndTime();
+            long todayStartTime = LocalDate.now()
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli();
+
+            if (plannedStartTime == null || plannedEndTime == null || plannedStartTime < todayStartTime || plannedStartTime >= plannedEndTime) {
+                log.error("借用时间异常，开始时间：{}，结束时间：{}，itemId：{}", plannedStartTime, plannedEndTime, itemId);
+                throw new BadRequestException("借用时间参数不合法");
+            }
+
+            long diffMillis = plannedEndTime - plannedStartTime;
+            BigDecimal diffMillisBd = BigDecimal.valueOf(diffMillis);
+
+            BigDecimal millisPerDay = new BigDecimal("86400000");
+            BigDecimal millisPerWeek = new BigDecimal("604800000");
+            BigDecimal millisPerMonth = new BigDecimal("2592000000");
+
+            Integer billingType = item.getBillingType();
+            BigDecimal duration = switch (billingType) {
+                case 1 -> diffMillisBd.divide(millisPerDay, 2, RoundingMode.HALF_UP);
+                case 2 -> diffMillisBd.divide(millisPerWeek, 2, RoundingMode.HALF_UP);
+                case 3 -> diffMillisBd.divide(millisPerMonth, 2, RoundingMode.HALF_UP);
+                default -> throw new BadRequestException("未知的计费类型");
+            };
+
+            BigDecimal price = item.getPrice();
+            BigDecimal deposit = item.getDeposit();
+            BigDecimal totalAmount = price.multiply(duration)
+                    .add(deposit)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            BorrowOrdersPO borrowOrdersPO = new BorrowOrdersPO();
+
+            borrowOrdersPO.setOrderNo(IdUtil.getSnowflake()
+                    .nextIdStr());
+
+            borrowOrdersPO.setItemId(itemId);
+            borrowOrdersPO.setBorrowerId(userId);
+            borrowOrdersPO.setLenderId(item.getOwnerId());
+            borrowOrdersPO.setTitle(item.getTitle());
+            borrowOrdersPO.setPrice(price);
+            borrowOrdersPO.setBillingType(billingType);
+            borrowOrdersPO.setDeposit(deposit);
+
+            borrowOrdersPO.setBorrowDays(duration);
+            borrowOrdersPO.setTotalAmount(totalAmount);
+
+            borrowOrdersPO.setStatus(1);
+            borrowOrdersPO.setPurpose(dto.getPurpose());
+            borrowOrdersPO.setPlannedStartTime(plannedStartTime);
+            borrowOrdersPO.setPlannedEndTime(plannedEndTime);
+
+            borrowOrdersPO.setVersion(0);
+            borrowOrdersPO.setCreatedAt(System.currentTimeMillis());
+            borrowOrdersPO.setUpdatedAt(System.currentTimeMillis());
+
+            save(borrowOrdersPO);
+
+            // 即时通知出借人：有新订单申请
+            OrderNotifyMessage notifyMsg = new OrderNotifyMessage(borrowOrdersPO.getLenderId(),
+                    borrowOrdersPO.getOrderNo(),
+                    BORROW_MESSAGE.getValue());
+            rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(notifyMsg));
+
+            // 延迟关单消息：24小时后检查状态
+            rabbitMqHelper.sendDelayMessage(ORDER_DELAY_EXCHANGE,
+                    ORDER_DELAY_KEY,
+                    borrowOrdersPO.getOrderNo(),
+                    Duration.ofDays(1L));
+
+            return borrowOrdersPO.getOrderNo();
+        } finally {
+            lock.unlock();
         }
-        if (item.getOwnerId()
-                .equals(userId)) {
-            log.error("不能借用属于自己的物品，itemId：{}", itemId);
-            throw new BadRequestException("不能借用属于自己的物品");
-        }
-        if (ItemStatus.AVAILABLE.getValue() != item.getStatus()) {
-            log.error("物品不可借用，itemId：{}", itemId);
-            throw new BadRequestException("物品状态异常");
-        }
-
-        Long plannedStartTime = dto.getPlannedStartTime();
-        Long plannedEndTime = dto.getPlannedEndTime();
-        long now = System.currentTimeMillis();
-
-        if (plannedStartTime == null || plannedEndTime == null || plannedStartTime < (now - 60000) || plannedStartTime >= plannedEndTime) {
-            log.error("借用时间异常，开始时间：{}，结束时间：{}，itemId：{}", plannedStartTime, plannedEndTime, itemId);
-            throw new BadRequestException("借用时间参数不合法");
-        }
-
-        long diffMillis = plannedEndTime - plannedStartTime;
-        BigDecimal diffMillisBd = BigDecimal.valueOf(diffMillis);
-
-        BigDecimal millisPerDay = new BigDecimal("86400000");
-        BigDecimal millisPerWeek = new BigDecimal("604800000");
-        BigDecimal millisPerMonth = new BigDecimal("2592000000");
-
-        Integer billingType = item.getBillingType();
-        BigDecimal duration = switch (billingType) {
-            case 1 -> diffMillisBd.divide(millisPerDay, 2, RoundingMode.HALF_UP);
-            case 2 -> diffMillisBd.divide(millisPerWeek, 2, RoundingMode.HALF_UP);
-            case 3 -> diffMillisBd.divide(millisPerMonth, 2, RoundingMode.HALF_UP);
-            default -> throw new BadRequestException("未知的计费类型");
-        };
-
-        BigDecimal price = item.getPrice();
-        BigDecimal deposit = item.getDeposit();
-        BigDecimal totalAmount = price.multiply(duration)
-                .add(deposit)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        BorrowOrdersPO borrowOrdersPO = new BorrowOrdersPO();
-
-        borrowOrdersPO.setOrderNo(IdUtil.getSnowflake()
-                .nextIdStr());
-
-        borrowOrdersPO.setItemId(itemId);
-        borrowOrdersPO.setBorrowerId(userId);
-        borrowOrdersPO.setLenderId(item.getOwnerId());
-        borrowOrdersPO.setTitle(item.getTitle());
-        borrowOrdersPO.setPrice(price);
-        borrowOrdersPO.setBillingType(billingType);
-        borrowOrdersPO.setDeposit(deposit);
-
-        borrowOrdersPO.setBorrowDays(duration);
-        borrowOrdersPO.setTotalAmount(totalAmount);
-
-        borrowOrdersPO.setStatus(1);
-        borrowOrdersPO.setPurpose(dto.getPurpose());
-        borrowOrdersPO.setPlannedStartTime(plannedStartTime);
-        borrowOrdersPO.setPlannedEndTime(plannedEndTime);
-
-        borrowOrdersPO.setVersion(0);
-        borrowOrdersPO.setCreatedAt(now);
-        borrowOrdersPO.setUpdatedAt(now);
-
-        save(borrowOrdersPO);
-
-        // 即时通知出借人：有新订单申请
-        OrderNotifyMessage notifyMsg = new OrderNotifyMessage(borrowOrdersPO.getLenderId(),
-                borrowOrdersPO.getOrderNo(),
-                BORROW_MESSAGE.getValue());
-        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(notifyMsg));
-
-        // 延迟关单消息：24小时后检查状态
-        rabbitMqHelper.sendDelayMessage(ORDER_DELAY_EXCHANGE,
-                ORDER_DELAY_KEY,
-                borrowOrdersPO.getOrderNo(),
-                Duration.ofDays(1L));
-
-        return borrowOrdersPO.getOrderNo();
     }
 
     @Override
@@ -392,7 +402,6 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
         rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(orderNotifyMessage));
 
-
     }
 
     @Override
@@ -563,14 +572,16 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         // 3. 验签通过，处理业务逻辑
         String tradeStatus = params.get("trade_status");
         String orderNo = params.get("out_trade_no");
+        String tradeNo = params.get("trade_no");
 
-        log.info("【支付宝回调】验签通过。订单号: {}, 交易状态: {}", orderNo, tradeStatus);
+        log.info("【支付宝回调】验签通过。订单号: {}, 交易状态: {}, 支付宝交易号: {}", orderNo, tradeStatus, tradeNo);
 
         if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
-            // 4. 修改订单状态 (status=2 确保幂等)
+            // 4. 修改订单状态 (status=2 确保幂等)，同时保存支付宝交易号
             boolean updateResult = lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
                     .eq(BorrowOrdersPO::getStatus, 2)
                     .set(BorrowOrdersPO::getStatus, 3)
+                    .set(BorrowOrdersPO::getPayTradeNo, tradeNo)
                     .update();
 
             if (updateResult) {
@@ -661,6 +672,35 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         } catch (AlipayApiException e) {
             log.error("【支付补偿】调用支付宝查询接口发生异常", e);
         }
+    }
+
+    @Override
+    public BorrowOrdersVO getBorrowOrdersDetail(String orderNo) {
+        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
+                .one();
+
+        Long itemId = ordersPO.getItemId();
+
+        ItemsVO itemVO = itemClient.getById(itemId);
+
+
+        Long borrowerId = ordersPO.getBorrowerId();
+
+        UserDTO borrowUser = userClient.queryUserById(borrowerId);
+
+        Long lenderId = ordersPO.getLenderId();
+
+        UserDTO lenderUser = userClient.queryUserById(lenderId);
+
+        BorrowOrdersVO borrowOrdersVO = BeanUtil.toBean(ordersPO, BorrowOrdersVO.class);
+        borrowOrdersVO.setItemImages(itemVO.getImages());
+        borrowOrdersVO.setItemName(itemVO.getTitle());
+        borrowOrdersVO.setBorrowerName(borrowUser.getUsername());
+        borrowOrdersVO.setBorrowerAvatar(borrowUser.getAvatarUrl());
+        borrowOrdersVO.setLenderName(lenderUser.getUsername());
+        borrowOrdersVO.setLenderAvatar(lenderUser.getAvatarUrl());
+
+        return borrowOrdersVO;
     }
 
 }

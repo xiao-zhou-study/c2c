@@ -106,6 +106,7 @@ public class SystemBroadcastsServiceImpl extends ServiceImpl<SystemBroadcastsMap
                         .or()
                         .eq(SystemBroadcastsPO::getTargetUserId, userId))
                 .ge(SystemBroadcastsPO::getCreatedAt, timestamp)
+                .orderByDesc(SystemBroadcastsPO::getCreatedAt)
                 .list();
 
         LambdaQueryChainWrapper<UserBroadcastStatusPO> wrapper = new LambdaQueryChainWrapper<>(userBroadcastStatusMapper);

@@ -19,3 +19,6 @@ spring:
 logging:
   level:
     com.aynu: debug
+
+alipay:
+  returnUrl: http://localhost:3000/pay/success

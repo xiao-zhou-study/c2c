@@ -2067,7 +2067,7 @@
 ## 10.订单管理模块
 ### 10.1 创建借用订单接口
 
-**POST** `http://localhost:8080/borrow_orders/create`
+**POST** `http://localhost:8080/os/borrow_orders/create`
 
 **说明**：用户提交借用申请，创建新的借用订单。调用此接口需要提供物品 ID、计划借用的起止时间以及借用用途。系统验证通过后将生成订单记录，并返回订单唯一 ID。
 
@@ -2100,7 +2100,7 @@
 
 ### 10.2 分页获取我借出的订单接口
 
-**GET** `http://localhost:8080/borrow_orders/page/out`
+**GET** `http://localhost:8080/os/borrow_orders/page/out`
 
 **说明**：获取当前用户作为**出借人**（Lender）所拥有的订单列表。支持根据订单状态、关键词（如物品名称、借用人姓名）以及订单创建时间进行筛选。常用于个人中心的“我借出的”模块。
 
@@ -2171,7 +2171,7 @@
 
 ### 10.3 分页获取我借用的订单接口
 
-**GET** `http://localhost:8080/borrow_orders/page/in`
+**GET** `http://localhost:8080/os/borrow_orders/page/in`
 
 **说明**：获取当前用户作为**借用人**（Borrower）所发起的订单列表。支持根据订单状态、关键词（模糊匹配物品名或出借人姓名）以及时间范围进行筛选。常用于个人中心的“我借入的”模块。
 
@@ -2242,7 +2242,7 @@
 
 ### 10.4 同意借用订单接口
 
-**PUT** `http://localhost:8080/borrow_orders/agree`
+**PUT** `http://localhost:8080/os/borrow_orders/agree`
 
 **说明**：出借人（Lender）通过此接口同意借用人的借用申请。执行该操作后，订单状态通常从“待确认”流转至“待付款”。为了保证数据一致性，接口需要上传当前数据的版本号进行乐观锁校验。
 
@@ -2273,7 +2273,7 @@
 
 ### 10.5 拒绝借用订单接口
 
-**PUT** `http://localhost:8080/borrow_orders/reject`
+**PUT** `http://localhost:8080/os/borrow_orders/reject`
 
 **说明**：出借人（Lender）通过此接口拒绝借用人的借用申请。执行该操作后，订单状态将流转至“已拒绝”。调用时需填写拒绝原因，并上传当前数据的版本号进行乐观锁校验，以确保操作的准确性。
 
@@ -2305,7 +2305,7 @@
 
 ### 10.6 取消借用订单接口
 
-**PUT** `http://localhost:8080/borrow_orders/cancel`
+**PUT** `http://localhost:8080/os/borrow_orders/cancel`
 
 **说明**：借用人（Borrower）在订单处于“待确认”或“待付款”等阶段时，可以通过此接口主动取消借用订单。取消后，订单状态将流转至“已取消”。调用时需提供订单号，并上传当前数据的版本号进行乐观锁校验，以防止并发操作冲突。
 
@@ -2336,7 +2336,7 @@
 
 ### 10.7 归还借用订单接口
 
-**PUT** `http://localhost:8080/borrow_orders/return`
+**PUT** `http://localhost:8080/os/borrow_orders/return`
 
 **说明**：借用人（Borrower）在物品使用完毕后，通过此接口发起归还请求。执行该操作后，订单状态将流转至“待归还确认”。此时需要出借人对物品状态进行核验。调用时需上传订单号及版本号，以确保基于最新的订单状态进行操作。
 
@@ -2367,7 +2367,7 @@
 
 ### 10.8 确认归还订单接口
 
-**PUT** `http://localhost:8080/borrow_orders/confirm`
+**PUT** `http://localhost:8080/os/borrow_orders/confirm`
 
 **说明**：出借人（Lender）在收到归还物品并核验无误后，通过此接口完成归还确认。执行该操作后，订单状态将流转至“已完成”。该步骤通常会触发押金退还逻辑（如有）及系统结算。调用时需上传订单号及版本号进行乐观锁校验。
 
@@ -2398,7 +2398,7 @@
 
 ### 10.9 订单付款接口
 
-**PUT** `http://localhost:8080/borrow_orders/pay`
+**PUT** `http://localhost:8080/os/borrow_orders/pay`
 
 **说明**：借用人（Borrower）在申请被同意后，通过此接口对借用订单进行支付。执行该操作后，订单状态将由“待付款”流转至“借用中”。接口会返回支付相关的凭证或状态信息，并使用版本号进行乐观锁校验以确保交易安全。
 
@@ -2423,6 +2423,64 @@
   "msg": "支付跳转中或支付成功",
   "ts": 1739452605000,
   "data": "SUCCESS"
+}
+
+```
+
+### 17.10 获取单个订单详情接口
+
+**GET** `http://localhost:8080/os/borrow_orders/detail`
+
+**说明**：根据订单编号（orderNo）获取借用订单的完整详细信息。该接口返回包含物品快照、借贷双方信息、费用明细、全流程时间戳以及当前订单状态的所有数据。适用于订单详情页的展示及后续操作（如同意、归还、付款）前的版本号（version）获取。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 用户登录访问令牌 |
+| orderNo | Query | String | 是 | 订单编号（唯一商户单号） |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1739519227000,
+  "data": {
+    "id": 1890123456789,
+    "orderNo": "ORD202602140001",
+    "itemId": 5002,
+    "itemName": "大疆无人机 Air 3",
+    "itemImages": ["http://img.top/dj1.jpg", "http://img.top/dj2.jpg"],
+    "borrowerId": 2001,
+    "borrowerName": "张三",
+    "borrowerAvatar": "http://img.top/avatar/z3.jpg",
+    "lenderId": 2005,
+    "lenderName": "李四",
+    "lenderAvatar": "http://img.top/avatar/l4.jpg",
+    "title": "借用大疆无人机 Air 3",
+    "price": 100.00,
+    "billingType": 1,
+    "deposit": 2000.00,
+    "borrowDays": 2.0,
+    "totalAmount": 2200.00,
+    "status": 3,
+    "purpose": "航拍学校全景素材",
+    "plannedStartTime": 1739500000000,
+    "plannedEndTime": 1739672800000,
+    "confirmTime": 1739501000000,
+    "payTime": 1739502000000,
+    "payTradeNo": "T202602148888",
+    "borrowTime": 1739503000000,
+    "expectReturnTime": 1739672800000,
+    "actualReturnTime": null,
+    "refundTime": null,
+    "cancelReason": null,
+    "version": 5,
+    "createdAt": 1739498000000,
+    "updatedAt": 1739503000000
+  }
 }
 
 ```

@@ -48,7 +48,6 @@ alipay:
   alipayPublicKey: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgMFJO/1TTOKZMihgfz5VDrmUY5uJvUVC7WhlsipqiHKnS9WN4uMaTz9CnJjEOlUgewm7FUhQ4uFJebezssYTnPgBvsJPHQH4L+5l0IDWD6SQXM+om3dqRR9xCeACY9FIGKtQXEChh6cEk8ecAk1KCwfScK5pRQsJIIl/i1ekXZ1229xDSpcbz70crW/Iz1xmBb2rsCjY/1SgE2C707k9OZ96HTA9szxGAXhkcjB/g93t4vIH84AQa/B77CEVFnoBa/EBWPLr6hKpCixzVEApvW2OedFpwRWA3ZBFURX1g4RASqye57eexixxbm2uTKLRyUEBdqvhofon7iowCSWw2wIDAQAB"
   appId: "9021000144676990"
   gatewayUrl: https://openapi-sandbox.dl.alipaydev.com/gateway.do
-  returnUrl: https://www.xzxfle.top/pay/success
   notifyUrl: https://api.xzxfle.top/os/borrow_orders/notify
   format: JSON
   charset: UTF-8
