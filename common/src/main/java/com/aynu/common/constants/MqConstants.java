@@ -44,6 +44,7 @@ public interface MqConstants {
          */
         String USER_NEW_KEY = "user.new";
         String USER_UPDATE_STATS = "user.update.stats";
+        String USER_UPDATE_ORDER_STATS = "user.update.order.stats";
 
         /*课程有关的 RoutingKey*/
         String COURSE_NEW_KEY = "course.new";

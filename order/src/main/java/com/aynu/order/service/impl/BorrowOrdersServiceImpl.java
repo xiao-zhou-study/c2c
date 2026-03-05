@@ -20,6 +20,7 @@ import com.aynu.api.enums.item.ItemStatus;
 import com.aynu.common.autoconfigure.mq.RabbitMqHelper;
 import com.aynu.common.domain.dto.OrderNotifyMessage;
 import com.aynu.common.domain.dto.PageDTO;
+import com.aynu.common.domain.dto.UpdateStatsDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.common.utils.UserContext;
@@ -40,6 +41,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -48,10 +50,11 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
-import static com.aynu.common.constants.MqConstants.Exchange.ORDER_DELAY_EXCHANGE;
-import static com.aynu.common.constants.MqConstants.Exchange.ORDER_EXCHANGE;
+import static com.aynu.common.constants.MqConstants.Exchange.*;
 import static com.aynu.common.constants.MqConstants.Key.*;
 import static com.aynu.common.enums.NotifyTypeEnum.*;
 
@@ -66,6 +69,9 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
     private final AlipayClient alipayClient;
     private final AlipayProperties alipayProperties;
     private final RedissonClient redissonClient;
+
+    @Resource
+    private final Executor orderExecutor;
 
 
     @Override
@@ -589,6 +595,28 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             } else {
                 log.info("【支付宝回调】订单 {} 状态已在之前更新过，跳过本次处理", orderNo);
             }
+
+            // 异步更新借用者以及出借人的统计信息（已借出数量和借用中数量）
+            CompletableFuture.runAsync(() -> {
+                        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
+                                .one();
+
+                        List<UpdateStatsDTO> updateStatsDTOs = Arrays.asList(UpdateStatsDTO.builder()
+                                        .userId(ordersPO.getBorrowerId())
+                                        .type(2)
+                                        .isAdd(true)
+                                        .build(),
+                                UpdateStatsDTO.builder()
+                                        .userId(ordersPO.getLenderId())
+                                        .type(3)
+                                        .isAdd(false)
+                                        .build());
+                        rabbitMqHelper.send(USER_EXCHANGE, USER_UPDATE_ORDER_STATS, updateStatsDTOs);
+                    }, orderExecutor)
+                    .exceptionally(e -> {
+                        log.error("【支付宝回调】更新用户统计信息时出错", e);
+                        return null;
+                    });
         }
 
         // 5. 返回 success 给支付宝
