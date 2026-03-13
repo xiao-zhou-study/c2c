@@ -5,6 +5,7 @@ import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.item.domain.dto.ItemsDTO;
 import com.aynu.item.domain.po.Items;
+import com.aynu.item.domain.vo.PieChartVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.math.BigDecimal;
@@ -129,4 +130,7 @@ public interface IItemsService extends IService<Items> {
     List<ItemsVO> getHotItems(Integer days, Integer limit);
 
     List<ItemsVO> queryByIds(List<Long> ids);
+
+    List<PieChartVO> getPieChart();
+
 }

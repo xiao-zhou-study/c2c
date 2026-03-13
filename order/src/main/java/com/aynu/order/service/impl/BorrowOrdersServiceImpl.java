@@ -17,6 +17,7 @@ import com.aynu.api.client.user.UserClient;
 import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.api.enums.item.ItemStatus;
+import com.aynu.api.enums.order.OrderStatus;
 import com.aynu.common.autoconfigure.mq.RabbitMqHelper;
 import com.aynu.common.domain.dto.OrderNotifyMessage;
 import com.aynu.common.domain.dto.PageDTO;
@@ -27,6 +28,9 @@ import com.aynu.common.utils.UserContext;
 import com.aynu.order.config.AlipayProperties;
 import com.aynu.order.domain.dto.*;
 import com.aynu.order.domain.po.BorrowOrdersPO;
+import com.aynu.order.domain.vo.BorrowOrdersAmountVO;
+import com.aynu.order.domain.vo.BorrowOrdersPieVO;
+import com.aynu.order.domain.vo.BorrowOrdersTrendVO;
 import com.aynu.order.domain.vo.BorrowOrdersVO;
 import com.aynu.order.mapper.BorrowOrdersMapper;
 import com.aynu.order.service.BorrowOrdersService;
@@ -44,11 +48,9 @@ import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -69,8 +71,9 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
     private final AlipayClient alipayClient;
     private final AlipayProperties alipayProperties;
     private final RedissonClient redissonClient;
+    private final BorrowOrdersMapper borrowOrdersMapper;
 
-    @Resource
+    @Resource(name = "orderExecutor")
     private final Executor orderExecutor;
 
 
@@ -609,7 +612,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                                 UpdateStatsDTO.builder()
                                         .userId(ordersPO.getLenderId())
                                         .type(3)
-                                        .isAdd(false)
+                                        .isAdd(true)
                                         .build());
                         rabbitMqHelper.send(USER_EXCHANGE, USER_UPDATE_ORDER_STATS, updateStatsDTOs);
                     }, orderExecutor)
@@ -729,6 +732,227 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         borrowOrdersVO.setLenderAvatar(lenderUser.getAvatarUrl());
 
         return borrowOrdersVO;
+    }
+
+    @Override
+    public BorrowOrdersAmountVO getBorrowOrdersAmount() {
+        BigDecimal totalAmount = borrowOrdersMapper.getTotalAmount();
+
+        ZoneId zoneId = ZoneId.of("Asia/Shanghai");
+        // 获取今天的开始时间戳和结束时间戳
+        LocalDateTime todayStart = LocalDateTime.now()
+                .with(LocalTime.MIN);
+        LocalDateTime todayEnd = LocalDateTime.now()
+                .with(LocalTime.MAX);
+        long todayStartTime = todayStart.atZone(zoneId)
+                .toInstant()
+                .toEpochMilli();
+        long todayEndTime = todayEnd.atZone(zoneId)
+                .toInstant()
+                .toEpochMilli();
+        BigDecimal todayAmount = borrowOrdersMapper.getTodayAmount(todayStartTime, todayEndTime);
+
+        if (totalAmount == null) {
+            totalAmount = BigDecimal.ZERO;
+        }
+        if (todayAmount == null) {
+            todayAmount = BigDecimal.ZERO;
+        }
+
+        return new BorrowOrdersAmountVO(totalAmount, todayAmount);
+    }
+
+    @Override
+    public List<BorrowOrdersPieVO> getBorrowOrdersPie() {
+        List<BorrowOrdersCountDTO> borrowOrdersCount = borrowOrdersMapper.getBorrowOrdersCount();
+
+        if (CollUtil.isEmpty(borrowOrdersCount)) {
+            return List.of();
+        }
+
+        Map<Integer, Long> statusCountMap = borrowOrdersCount.stream()
+                .collect(Collectors.toMap(BorrowOrdersCountDTO::getStatusId, BorrowOrdersCountDTO::getCount));
+
+        Long totalCount = lambdaQuery().count();
+
+        OrderStatus[] values = OrderStatus.values();
+
+        return Arrays.stream(values)
+                .map(status -> {
+                    Long count = statusCountMap.getOrDefault(status.getValue(), 0L);
+
+                    BorrowOrdersPieVO borrowOrdersPieVO = new BorrowOrdersPieVO();
+
+                    borrowOrdersPieVO.setName(status.getDesc());
+
+                    borrowOrdersPieVO.setValue(BigDecimal.valueOf(count)
+                            .divide(BigDecimal.valueOf(totalCount), 2, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100)));
+
+                    return borrowOrdersPieVO;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<BorrowOrdersTrendVO> getBorrowOrdersTrend(Integer days) {
+        ZoneId zoneId = ZoneId.of("Asia/Shanghai");
+        long endTime = System.currentTimeMillis();
+        long startTime = endTime - (days * 24 * 60 * 60 * 1000L);
+
+        List<BorrowOrdersPO> borrowOrdersPOS = lambdaQuery().in(BorrowOrdersPO::getStatus, 2, 3, 4, 5)
+                .ge(BorrowOrdersPO::getCreatedAt, startTime)
+                .le(BorrowOrdersPO::getCreatedAt, endTime)
+                .list();
+
+        if (CollUtil.isEmpty(borrowOrdersPOS)) {
+            return List.of();
+        }
+
+        Map<LocalDate, Long> countPerDay = new HashMap<>();
+        Map<LocalDate, BigDecimal> amountPerDay = new HashMap<>();
+
+        for (BorrowOrdersPO order : borrowOrdersPOS) {
+            LocalDate date = Instant.ofEpochMilli(order.getCreatedAt())
+                    .atZone(zoneId)
+                    .toLocalDate();
+
+            countPerDay.merge(date, 1L, Long::sum);
+            amountPerDay.merge(date, order.getTotalAmount(), BigDecimal::add);
+        }
+
+        LocalDate startDate = Instant.ofEpochMilli(startTime)
+                .atZone(zoneId)
+                .toLocalDate();
+        LocalDate endDate = Instant.ofEpochMilli(endTime)
+                .atZone(zoneId)
+                .toLocalDate();
+
+        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
+        List<BorrowOrdersTrendVO> result = new ArrayList<>();
+
+        for (int i = 0; i <= daysBetween; i++) {
+            LocalDate currentDate = startDate.plusDays(i);
+
+            Long count = countPerDay.get(currentDate);
+            if (count == null) {
+                count = 0L;
+            }
+
+            BigDecimal amount = amountPerDay.get(currentDate);
+            if (amount == null) {
+                amount = BigDecimal.ZERO;
+            }
+
+            BorrowOrdersTrendVO vo = new BorrowOrdersTrendVO();
+            vo.setDate(currentDate);
+            vo.setOrderCount(count);
+            vo.setTransactionAmount(amount);
+
+            result.add(vo);
+        }
+
+        return result;
+    }
+
+    @Override
+    public PageDTO<BorrowOrdersVO> getBorrowOrdersList(PageQuery pageQuery, String keyword, Integer status) {
+        LambdaQueryChainWrapper<BorrowOrdersPO> wrapper = lambdaQuery();
+
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(BorrowOrdersPO::getTitle, keyword);
+        }
+
+        if (status != null && status > 0) {
+            wrapper.eq(BorrowOrdersPO::getStatus, status);
+        }
+
+        Page<BorrowOrdersPO> pageResult = wrapper.page(pageQuery.toMpPage("created_at", false));
+        List<BorrowOrdersPO> records = pageResult.getRecords();
+
+        if (CollUtil.isEmpty(records)) {
+            return PageDTO.empty(pageResult);
+        }
+
+        Set<Long> userIds = new HashSet<>();
+
+        records.forEach(record -> {
+            userIds.add(record.getBorrowerId());
+            userIds.add(record.getLenderId());
+        });
+
+        List<UserDTO> userList = userClient.queryUserByIds(userIds);
+
+        Map<Long, UserDTO> userMap = new HashMap<>();
+        if (CollUtil.isNotEmpty(userList)) {
+            userMap = userList.stream()
+                    .collect(Collectors.toMap(UserDTO::getId, user -> user));
+        }
+
+        Set<Long> itemIds = records.stream()
+                .map(BorrowOrdersPO::getItemId)
+                .collect(Collectors.toSet());
+
+        List<ItemsVO> itemList = new ArrayList<>();
+        if (CollUtil.isNotEmpty(itemIds)) {
+            itemList = itemClient.listByIds(itemIds);
+        }
+
+        Map<Long, ItemsVO> itemMap = new HashMap<>();
+        if (CollUtil.isNotEmpty(itemList)) {
+            itemMap = itemList.stream()
+                    .collect(Collectors.toMap(ItemsVO::getId, item -> item));
+        }
+
+        Map<Long, UserDTO> finalUserMap = userMap;
+        Map<Long, ItemsVO> finalItemMap = itemMap;
+        List<BorrowOrdersVO> collect = records.stream()
+                .map(record -> {
+                    UserDTO userBorrower;
+                    UserDTO userLender;
+                    userBorrower = finalUserMap.getOrDefault(record.getBorrowerId(), new UserDTO());
+                    userLender = finalUserMap.getOrDefault(record.getLenderId(), new UserDTO());
+                    ItemsVO item = finalItemMap.getOrDefault(record.getItemId(), new ItemsVO());
+
+                    BorrowOrdersVO borrowOrdersVO = new BorrowOrdersVO();
+                    borrowOrdersVO.setId(record.getId());
+                    borrowOrdersVO.setOrderNo(record.getOrderNo());
+                    borrowOrdersVO.setItemId(record.getItemId());
+                    borrowOrdersVO.setItemName(item.getTitle());
+                    borrowOrdersVO.setItemImages(item.getImages());
+                    borrowOrdersVO.setBorrowerId(record.getBorrowerId());
+                    borrowOrdersVO.setBorrowerName(userBorrower.getUsername());
+                    borrowOrdersVO.setBorrowerAvatar(userBorrower.getAvatarUrl());
+                    borrowOrdersVO.setLenderName(userLender.getUsername());
+                    borrowOrdersVO.setLenderAvatar(userLender.getAvatarUrl());
+                    borrowOrdersVO.setLenderId(record.getLenderId());
+                    borrowOrdersVO.setTitle(record.getTitle());
+                    borrowOrdersVO.setPrice(record.getPrice());
+                    borrowOrdersVO.setBillingType(record.getBillingType());
+                    borrowOrdersVO.setDeposit(record.getDeposit());
+                    borrowOrdersVO.setBorrowDays(record.getBorrowDays());
+                    borrowOrdersVO.setTotalAmount(record.getTotalAmount());
+                    borrowOrdersVO.setStatus(record.getStatus());
+                    borrowOrdersVO.setPurpose(record.getPurpose());
+                    borrowOrdersVO.setPlannedStartTime(record.getPlannedStartTime());
+                    borrowOrdersVO.setPlannedEndTime(record.getPlannedEndTime());
+                    borrowOrdersVO.setConfirmTime(record.getConfirmTime());
+                    borrowOrdersVO.setPayTime(record.getPayTime());
+                    borrowOrdersVO.setPayTradeNo(record.getPayTradeNo());
+                    borrowOrdersVO.setBorrowTime(record.getBorrowTime());
+                    borrowOrdersVO.setExpectReturnTime(record.getExpectReturnTime());
+                    borrowOrdersVO.setActualReturnTime(record.getActualReturnTime());
+                    borrowOrdersVO.setRefundTime(record.getRefundTime());
+                    borrowOrdersVO.setCancelReason(record.getCancelReason());
+                    borrowOrdersVO.setVersion(record.getVersion());
+                    borrowOrdersVO.setCreatedAt(record.getCreatedAt());
+                    borrowOrdersVO.setUpdatedAt(record.getUpdatedAt());
+
+                    return borrowOrdersVO;
+                })
+                .collect(Collectors.toList());
+
+        return PageDTO.of(pageResult, collect);
     }
 
 }

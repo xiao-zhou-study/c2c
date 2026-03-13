@@ -17,8 +17,10 @@ import com.aynu.common.exceptions.BadRequestException;
 import com.aynu.common.utils.StringUtils;
 import com.aynu.common.utils.UserContext;
 import com.aynu.item.domain.dto.ItemsDTO;
+import com.aynu.item.domain.dto.PieChartCountDTO;
 import com.aynu.item.domain.po.Categories;
 import com.aynu.item.domain.po.Items;
+import com.aynu.item.domain.vo.PieChartVO;
 import com.aynu.item.mapper.ItemsMapper;
 import com.aynu.item.service.ICategoriesService;
 import com.aynu.item.service.IItemsService;
@@ -31,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +59,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
     private final UserClient userClient;
     private final ICategoriesService categoriesService;
     private final RabbitMqHelper rabbitMqHelper;
+    private final ItemsMapper itemsMapper;
 
     @Override
     public Long add(ItemsDTO itemsDTO) {
@@ -275,6 +279,27 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
                 .map(item -> convertToVO(item, userMap, categoryMap))
                 .collect(Collectors.toList());
 
+    }
+
+    @Override
+    public List<PieChartVO> getPieChart() {
+        List<PieChartCountDTO> pieChartVOs = itemsMapper.getItemByCategoryCount();
+
+        // 获取物品总数量
+        Long count = lambdaQuery().count();
+
+        return pieChartVOs.stream()
+                .map(dto -> {
+                    PieChartVO pieChartVO = new PieChartVO();
+                    pieChartVO.setName(dto.getName());
+
+                    BigDecimal value = BigDecimal.valueOf(dto.getValue());
+                    BigDecimal total = BigDecimal.valueOf(count);
+                    pieChartVO.setValue(value.divide(total, 2, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100)));
+                    return pieChartVO;
+                })
+                .collect(Collectors.toList());
     }
 
     /**

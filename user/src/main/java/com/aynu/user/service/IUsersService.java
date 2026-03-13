@@ -11,6 +11,7 @@ import com.aynu.user.domain.dto.UserRegisterDTO;
 import com.aynu.user.domain.dto.VerifyDTO;
 import com.aynu.user.domain.po.Users;
 import com.aynu.user.domain.vo.UserStatsVO;
+import com.aynu.user.domain.vo.UserTrendVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -47,4 +48,8 @@ public interface IUsersService extends IService<Users> {
     PageDTO<UserDTO> queryUserPage(PageQuery query, String keyword, Integer status);
 
     void updateUserStats(Long userId, Integer statsEnum, boolean isAdd);
+
+    Long getUserCount();
+
+    List<UserTrendVO> getUserTrend(Integer days);
 }

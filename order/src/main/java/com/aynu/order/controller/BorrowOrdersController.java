@@ -4,6 +4,9 @@ package com.aynu.order.controller;
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.order.domain.dto.*;
+import com.aynu.order.domain.vo.BorrowOrdersAmountVO;
+import com.aynu.order.domain.vo.BorrowOrdersPieVO;
+import com.aynu.order.domain.vo.BorrowOrdersTrendVO;
 import com.aynu.order.domain.vo.BorrowOrdersVO;
 import com.aynu.order.service.BorrowOrdersService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "借用订单表接口")
@@ -153,5 +157,59 @@ public class BorrowOrdersController {
     }
 
     // todo： 争议订单
+
+
+    /**
+     * 获取订单数量
+     *
+     * @return 订单数量
+     */
+    @GetMapping("/count")
+    public Long getBorrowOrdersCount() {
+        return borrowOrdersService.count();
+    }
+
+    /**
+     * 获取订单总额以及今日交易额
+     *
+     * @return 订单总额以及今日交易额
+     */
+    @GetMapping("/amount")
+    public BorrowOrdersAmountVO getBorrowOrdersAmount() {
+        return borrowOrdersService.getBorrowOrdersAmount();
+    }
+
+    /**
+     * 订单状态饼图
+     */
+    @GetMapping("/pie")
+    public List<BorrowOrdersPieVO> getBorrowOrdersPie() {
+        return borrowOrdersService.getBorrowOrdersPie();
+    }
+
+    /**
+     * 订单趋势图
+     *
+     * @return 响应数据
+     */
+    @GetMapping("/trend")
+    public List<BorrowOrdersTrendVO> getBorrowOrdersTrend(@RequestParam Integer days) {
+        return borrowOrdersService.getBorrowOrdersTrend(days);
+    }
+
+
+    /**
+     * 获取所有订单列表
+     *
+     * @param pageQuery 分页参数
+     * @param keyword   关键字
+     * @param status    订单状态
+     * @return 订单列表
+     */
+    @GetMapping("/list")
+    public PageDTO<BorrowOrdersVO> getBorrowOrdersList(PageQuery pageQuery, String keyword, Integer status) {
+        return borrowOrdersService.getBorrowOrdersList(pageQuery, keyword, status);
+    }
+
 
 }

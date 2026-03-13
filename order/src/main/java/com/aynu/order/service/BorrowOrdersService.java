@@ -4,10 +4,14 @@ import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.order.domain.dto.*;
 import com.aynu.order.domain.po.BorrowOrdersPO;
+import com.aynu.order.domain.vo.BorrowOrdersAmountVO;
+import com.aynu.order.domain.vo.BorrowOrdersPieVO;
+import com.aynu.order.domain.vo.BorrowOrdersTrendVO;
 import com.aynu.order.domain.vo.BorrowOrdersVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.Map;
 
 public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
@@ -38,4 +42,14 @@ public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
     void syncWithAlipay(String orderNo);
 
     BorrowOrdersVO getBorrowOrdersDetail(String orderNo);
+
+    BorrowOrdersAmountVO getBorrowOrdersAmount();
+
+    List<BorrowOrdersPieVO> getBorrowOrdersPie();
+
+    List<BorrowOrdersTrendVO> getBorrowOrdersTrend(Integer days);
+
+    PageDTO<BorrowOrdersVO> getBorrowOrdersList(PageQuery pageQuery,
+                                             String keyword,
+                                             Integer status);
 }

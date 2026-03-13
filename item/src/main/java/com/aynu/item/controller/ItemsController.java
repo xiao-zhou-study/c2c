@@ -5,6 +5,7 @@ import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
 import com.aynu.common.utils.UserContext;
 import com.aynu.item.domain.dto.ItemsDTO;
+import com.aynu.item.domain.vo.PieChartVO;
 import com.aynu.item.service.IItemsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -123,5 +124,17 @@ public class ItemsController {
     @GetMapping("/list")
     public List<ItemsVO> listByIds(@RequestParam("ids") List<Long> ids) {
         return itemsService.queryByIds(ids);
+    }
+
+    @GetMapping("/count")
+    @ApiOperation("获取物品数量")
+    public Long getCount() {
+        return itemsService.count();
+    }
+
+    @GetMapping("/pie")
+    @ApiOperation("获取当前物品分类饼图")
+    public List<PieChartVO> getPieChart() {
+        return itemsService.getPieChart();
     }
 }

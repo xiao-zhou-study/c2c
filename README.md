@@ -1013,6 +1013,84 @@
 
 ```
 
+### 5.12 获取用户总数接口
+
+**GET** `http://localhost:8080/us/users/count`
+
+**说明**：获取系统当前注册用户的总人数。该接口通常用于后台管理系统的仪表盘数据统计，反映平台的整体用户规模。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741513038000,
+  "data": 1250
+}
+
+```
+
+### 5.13 获取用户增长趋势接口
+
+**GET** `http://localhost:8080/us/users/trend`
+
+**说明**：根据指定的时间维度（近 7 天或 30 天），查询每日新增用户数的统计数据。该接口返回日期序列及对应的每日新增人数，支持前端直接对接 ECharts 等图表库，用于在管理后台通过折线图展示用户增长轨迹。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+| days | Query | Integer | 是 | 查询的时间范围（仅支持输入 7 或 30） |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741519450000,
+  "data": [
+    {
+      "date": "2026-03-03",
+      "count": 15
+    },
+    {
+      "date": "2026-03-04",
+      "count": 22
+    },
+    {
+      "date": "2026-03-05",
+      "count": 18
+    },
+    {
+      "date": "2026-03-06",
+      "count": 30
+    },
+    {
+      "date": "2026-03-07",
+      "count": 25
+    },
+    {
+      "date": "2026-03-08",
+      "count": 40
+    },
+    {
+      "date": "2026-03-09",
+      "count": 35
+    }
+  ]
+}
+
+```
+
 ## 6.物品管理模块
 ### 6.1 新增物品信息接口
 
@@ -1401,6 +1479,71 @@
     "totalViewCount": 85600, // 全站物品总浏览量
     "totalCategoryCount": 12 // 现有物品分类总数
   }
+}
+
+```
+
+### 6.10 获取物品总数接口
+
+**GET** `http://localhost:8080/is/items/count`
+
+**说明**：获取系统当前所有已登记物品的总数量。该数据通常用于管理后台的统计概览，展示平台物品资源的丰富程度。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741513221000,
+  "data": 856
+}
+
+```
+
+### 6.11 获取当前物品分类饼图接口
+
+**GET** `http://localhost:8080/is/items/pie`
+
+**说明**：获取系统中各物品分类的数量分布数据。该接口返回每个分类的名称及其对应的数值（通常为该分类下的物品总数或占比），数据结构直接适配 ECharts 等前端图表库的饼图（Pie Chart）组件，用于管理后台的资源分布分析。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741518957000,
+  "data": [
+    {
+      "name": "数码产品",
+      "value": 350
+    },
+    {
+      "name": "体育器材",
+      "value": 240
+    },
+    {
+      "name": "图书资料",
+      "value": 180
+    },
+    {
+      "name": "生活用品",
+      "value": 86
+    }
+  ]
 }
 
 ```
@@ -2427,7 +2570,7 @@
 
 ```
 
-### 17.10 获取单个订单详情接口
+### 10.10 获取单个订单详情接口
 
 **GET** `http://localhost:8080/os/borrow_orders/detail`
 
@@ -2480,6 +2623,228 @@
     "version": 5,
     "createdAt": 1739498000000,
     "updatedAt": 1739503000000
+  }
+}
+
+```
+
+### 10.11 获取订单总数接口
+
+**GET** `http://localhost:8080/os/borrow_orders/count`
+
+**说明**：获取系统中所有借用订单的总数量。该接口通常用于管理后台的统计看板，反映平台借用交易的活跃程度。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741513572000,
+  "data": 3240
+}
+
+```
+
+### 10.12 获取订单总额以及今日交易额接口
+
+**GET** `http://localhost:8080/os/borrow_orders/amount`
+
+**说明**：获取系统累计的交易总额以及当日（从 00:00:00 起）产生的交易总额。该接口主要用于管理后台首页的经营数据展示，帮助管理人员实时掌握平台的流水情况。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741515665000,
+  "data": {
+    "totalAmount": 158600.50,
+    "todayAmount": 1250.00
+  }
+}
+
+```
+
+### 10.13 订单状态饼图接口
+
+**GET** `http://localhost:8080/os/borrow_orders/pie`
+
+**说明**：获取系统内各订单状态（如：待确认、借用中、已完成等）的分布统计数据。该接口返回每种状态的名称及其对应的订单数量或占比，前端可直接对接 ECharts 等饼图组件，用于管理后台直观展示当前各类订单的业务处理进度。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741519782000,
+  "data": [
+    {
+      "name": "待确认",
+      "value": 150
+    },
+    {
+      "name": "借用中",
+      "value": 800
+    },
+    {
+      "name": "已完成",
+      "value": 2200
+    },
+    {
+      "name": "争议/异常",
+      "value": 90
+    }
+  ]
+}
+
+```
+
+### 10.14 订单趋势图接口
+
+**GET** `http://localhost:8080/os/borrow_orders/trend`
+
+**说明**：根据指定的时间维度（如近 7 天或近 30 天），统计每日的订单增长量及交易总额。该接口提供双维度数据，前端可据此绘制双轴图表，用于分析平台的业务增长趋势与营收波动情况。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 字段解释 |
+| --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | 管理员登录访问令牌 |
+| days | Query | Integer | 是 | 查询的时间范围（支持 7 或 30） |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741691504000,
+  "data": [
+    {
+      "date": "2026-03-05",
+      "orderCount": 45,
+      "transactionAmount": 5200.50
+    },
+    {
+      "date": "2026-03-06",
+      "orderCount": 52,
+      "transactionAmount": 6800.00
+    },
+    {
+      "date": "2026-03-07",
+      "orderCount": 38,
+      "transactionAmount": 4150.20
+    },
+    {
+      "date": "2026-03-08",
+      "orderCount": 65,
+      "transactionAmount": 9200.80
+    },
+    {
+      "date": "2026-03-09",
+      "orderCount": 58,
+      "transactionAmount": 7500.00
+    },
+    {
+      "date": "2026-03-10",
+      "orderCount": 70,
+      "transactionAmount": 10500.40
+    },
+    {
+      "date": "2026-03-11",
+      "orderCount": 62,
+      "transactionAmount": 8900.00
+    }
+  ]
+}
+
+```
+
+### 10.15 获取所有订单列表接口
+
+**GET** `http://localhost:8080/os/borrow_orders/list`
+
+**说明**：分页查询系统中的所有借用订单。支持通过关键字（订单号、物品名等）进行模糊搜索，并可按订单状态进行过滤。该接口主要用于管理后台的订单管理列表展示，提供排序及分页功能。
+
+**Parameters**
+
+| 字段名 | 位置 | 字段类型 | 是否必填 | 默认值 | 字段解释 |
+| --- | --- | --- | --- | --- | --- |
+| Authorization | Header | String | 是 | - | 管理员登录访问令牌 |
+| pageNo | Query | Integer | 否 | 1 | 当前页码 |
+| pageSize | Query | Integer | 否 | 20 | 每页展示条数 |
+| isAsc | Query | Boolean | 否 | true | 是否升序排列 |
+| sortBy | Query | String | 否 | - | 排序字段（如：createdAt） |
+| keyword | Query | String | 否 | - | 搜索关键字（模糊匹配订单号/物品名） |
+| status | Query | Integer | 否 | - | 订单状态过滤 (1-待确认, 2-待付款, 3-借用中等) |
+
+**Returns (application/json)**
+
+```json
+{
+  "code": 0,
+  "msg": "查询成功",
+  "ts": 1741691850000,
+  "data": {
+    "total": 125,
+    "pages": 7,
+    "list": [
+      {
+        "id": 1890123456789,
+        "orderNo": "ORD20260311001",
+        "itemId": 5002,
+        "itemName": "大疆无人机 Air 3",
+        "itemImages": ["http://img.top/dj1.jpg"],
+        "borrowerId": 2001,
+        "borrowerName": "张三",
+        "borrowerAvatar": "http://img.top/avatar/z3.jpg",
+        "lenderId": 2005,
+        "lenderName": "李四",
+        "lenderAvatar": "http://img.top/avatar/l4.jpg",
+        "title": "借用大疆无人机 Air 3",
+        "price": 100.00,
+        "billingType": 1,
+        "deposit": 2000.00,
+        "borrowDays": 2.0,
+        "totalAmount": 2200.00,
+        "status": 3,
+        "purpose": "航拍练习",
+        "plannedStartTime": 1741651200000,
+        "plannedEndTime": 1741824000000,
+        "confirmTime": 1741652000000,
+        "payTime": 1741653000000,
+        "payTradeNo": "WX202603118888",
+        "borrowTime": 1741654000000,
+        "expectReturnTime": 1741824000000,
+        "actualReturnTime": null,
+        "refundTime": null,
+        "cancelReason": null,
+        "version": 4,
+        "createdAt": 1741650000000,
+        "updatedAt": 1741654000000
+      }
+    ]
   }
 }
 

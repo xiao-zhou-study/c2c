@@ -10,6 +10,7 @@ import com.aynu.user.domain.dto.PasswordChangeDTO;
 import com.aynu.user.domain.dto.UserRegisterDTO;
 import com.aynu.user.domain.dto.VerifyDTO;
 import com.aynu.user.domain.vo.UserStatsVO;
+import com.aynu.user.domain.vo.UserTrendVO;
 import com.aynu.user.service.IUsersService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -87,5 +88,19 @@ public class UserController {
     @PostMapping("/verify")
     public void verifyUser(@Valid @RequestBody VerifyDTO verifyDTO) {
         usersService.verifyUser(verifyDTO);
+    }
+
+    @ApiOperation("获取用户总数")
+    @GetMapping("/count")
+    public Long getUserCount() {
+        return usersService.getUserCount();
+    }
+
+    /**
+     * 获取用户增长趋势图（近七天或者近30天）
+     */
+    @GetMapping("/trend")
+    public List<UserTrendVO> getUserTrend(@RequestParam("days") Integer days) {
+        return usersService.getUserTrend(days);
     }
 }

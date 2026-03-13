@@ -29,8 +29,24 @@
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
-    <sql id="Base_Column_List">
-        id
-        , order_no, item_id, borrower_id, lender_id, title, price, billing_type, deposit, borrow_days, total_amount, status, purpose, confirm_time, pay_time, pay_trade_no, borrow_time, expect_return_time, actual_return_time, refund_time, cancel_reason, version, created_at, updated_at    </sql>
+    <select id="getTotalAmount" resultType="java.math.BigDecimal">
+        select sum(total_amount)
+        from borrow_orders
+        where status in (3, 4, 5)
+    </select>
+
+    <select id="getTodayAmount" resultType="java.math.BigDecimal">
+        select sum(total_amount)
+        from borrow_orders
+        where status in (3, 4, 5)
+          and borrow_time between #{todayStartTime} and #{todayEndTime}
+    </select>
+
+
+    <select id="getBorrowOrdersCount" resultType="com.aynu.order.domain.dto.BorrowOrdersCountDTO">
+        select status as statusId, count(id) as count
+        from borrow_orders
+        group by status
+    </select>
 
 </mapper>

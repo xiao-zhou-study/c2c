@@ -1,0 +1,13 @@
+spring:
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      discovery:
+        register-enabled: true
+        ip: 127.0.0.1
+      config:
+        timeout: 10000
+        config-retry-time: 3000
+logging:
+  level:
+    com.aynu: debug

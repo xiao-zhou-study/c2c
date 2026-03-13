@@ -22,6 +22,7 @@ import com.aynu.user.domain.po.UserProfiles;
 import com.aynu.user.domain.po.UserStats;
 import com.aynu.user.domain.po.Users;
 import com.aynu.user.domain.vo.UserStatsVO;
+import com.aynu.user.domain.vo.UserTrendVO;
 import com.aynu.user.mapper.UsersMapper;
 import com.aynu.user.service.IUserProfilesService;
 import com.aynu.user.service.IUserStatsService;
@@ -37,6 +38,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -480,6 +485,49 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
                 .eq(UserStats::getUserId, userId)
                 .setSql(dbField + " = " + dbField + (isIncrement ? " + 1" : " - 1"))
                 .update();
+    }
+
+    @Override
+    public Long getUserCount() {
+        return lambdaQuery().eq(Users::getStatus, 1)
+                .count();
+    }
+
+    @Override
+    public List<UserTrendVO> getUserTrend(Integer days) {
+        long endTime = System.currentTimeMillis();
+        long startTime = endTime - (long) days * 24 * 60 * 60 * 1000;
+
+        List<Users> userList = lambdaQuery().ge(Users::getCreatedAt, startTime)
+                .le(Users::getCreatedAt, endTime)
+                .list();
+
+        Map<String, Long> dateCountMap = userList.stream()
+                .collect(Collectors.groupingBy(user -> {
+                    long timestamp = user.getCreatedAt();
+                    LocalDate date = Instant.ofEpochMilli(timestamp)
+                            .atZone(ZoneId.of("Asia/Shanghai"))
+                            .toLocalDate();
+                    return date.toString();
+                }, Collectors.counting()));
+
+        List<UserTrendVO> result = new ArrayList<>();
+        LocalDate endDate = Instant.ofEpochMilli(endTime)
+                .atZone(ZoneId.of("Asia/Shanghai"))
+                .toLocalDate();
+
+        for (int i = days - 1; i >= 0; i--) {
+            LocalDate date = endDate.minusDays(i);
+            String dateStr = date.toString();
+            long count = dateCountMap.getOrDefault(dateStr, 0L);
+
+            result.add(UserTrendVO.builder()
+                    .date(dateStr)
+                    .count(count)
+                    .build());
+        }
+
+        return result;
     }
 
     private void setDefaultUserInfo(Users users) {

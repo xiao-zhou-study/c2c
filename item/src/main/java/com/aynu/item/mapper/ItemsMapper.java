@@ -1,7 +1,10 @@
 package com.aynu.item.mapper;
 
+import com.aynu.item.domain.dto.PieChartCountDTO;
 import com.aynu.item.domain.po.Items;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+
+import java.util.List;
 
 /**
  * <p>
@@ -12,5 +15,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  * @since 2025-12-19
  */
 public interface ItemsMapper extends BaseMapper<Items> {
+
+    List<PieChartCountDTO> getItemByCategoryCount();
 
 }

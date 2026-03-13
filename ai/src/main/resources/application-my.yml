@@ -1,0 +1,26 @@
+spring:
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      discovery:
+        register-enabled: true
+        ip: 127.0.0.1
+      config:
+        file-extension: yaml
+        timeout: 10000
+        config-retry-time: 3000
+  config:
+    import:
+      - optional:nacos:shared-spring.yaml?refresh=false
+      - optional:nacos:shared-logs.yaml?refresh=false
+      - optional:nacos:langchain4j.yaml?refresh=false
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 123456
+      database: 0
+
+logging:
+  level:
+    com.aynu: debug
