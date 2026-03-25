@@ -1,8 +1,5 @@
 package com.aynu.item.domain.po;
 
-import com.aynu.api.enums.item.BillingType;
-import com.aynu.api.enums.item.ConditionLevel;
-import com.aynu.api.enums.item.ItemStatus;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -32,18 +29,18 @@ public class Items implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 主键ID，采用雪花算法
+     * 主键 ID（雪花算法生成）
      */
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
-     * 物品所有者ID（逻辑外键，关联users表id）
+     * 物品所有者 ID（关联 users 表 id）
      */
     private Long ownerId;
 
     /**
-     * 物品标题（如“九成新笔记本电脑”）
+     * 物品标题
      */
     private String title;
 
@@ -53,7 +50,7 @@ public class Items implements Serializable {
     private String description;
 
     /**
-     * 物品分类ID（逻辑外键，关联categories表id）
+     * 物品分类 ID（关联 categories 表 id）
      */
     private Long categoryId;
 
@@ -61,46 +58,20 @@ public class Items implements Serializable {
      * 物品成色：0-全新、1-九成新、2-八成新等
      * 对应枚举 ConditionLevel
      */
-    private ConditionLevel conditionLevel;
+    private Integer conditionLevel;
 
     /**
-     * 物品图片URL集合，JSON格式存储
+     * 物品图片 URL 集合，JSON 格式存储
      */
     private String images;
 
     /**
-     * 租赁单价（元）
+     * 售价（元）
      */
     private BigDecimal price;
 
     /**
-     * 计费类型：PER_DAY-按天、PER_WEEK-按周、PER_MONTH-按月
-     * 对应枚举 BillingType
-     */
-    private BillingType billingType;
-
-    /**
-     * 押金金额（元）
-     */
-    private BigDecimal deposit;
-
-    /**
-     * 价格是否可议：FALSE-不可议，TRUE-可议
-     */
-    private Boolean isNegotiable;
-
-    /**
-     * 最小租赁天数
-     */
-    private Integer minBorrowDays;
-
-    /**
-     * 最大租赁天数
-     */
-    private Integer maxBorrowDays;
-
-    /**
-     * 物品所在位置（如“XX校区教学楼”）
+     * 物品所在位置
      */
     private String location;
 
@@ -110,15 +81,10 @@ public class Items implements Serializable {
     private String address;
 
     /**
-     * 借用条件（如“仅限本校学生”）
-     */
-    private String borrowConditions;
-
-    /**
-     * 物品状态：1-可借用 2-已借出 3-已下架
+     * 物品状态：1-待售 2-已售出 3-已下架
      * 对应枚举 ItemStatus
      */
-    private ItemStatus status;
+    private Integer status;
 
     /**
      * 浏览次数
@@ -131,12 +97,12 @@ public class Items implements Serializable {
     private Integer favoriteCount;
 
     /**
-     * 记录创建时间戳（毫秒级）
+     * 记录创建时间戳
      */
     private Long createdAt;
 
     /**
-     * 记录更新时间戳（毫秒级）
+     * 记录更新时间戳
      */
     private Long updatedAt;
 

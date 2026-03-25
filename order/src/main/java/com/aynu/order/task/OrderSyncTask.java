@@ -44,7 +44,7 @@ public class OrderSyncTask {
             for (BorrowOrdersPO order : borrowOrdersPOS) {
                 // 3. 调用支付宝主动查询接口
                 // 这里的 syncWithAlipay 内部封装了 alipay.trade.query
-                borrowOrdersService.syncWithAlipay(order.getOrderNo());
+                borrowOrdersService.syncWithAlipay(order.getId());
             }
 
         } finally {

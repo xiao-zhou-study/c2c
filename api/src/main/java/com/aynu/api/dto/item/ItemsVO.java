@@ -13,12 +13,12 @@ import java.util.List;
 @NoArgsConstructor
 public class ItemsVO implements Serializable {
     /**
-     * 主键ID，采用雪花算法
+     * 主键 ID，采用雪花算法
      */
     private Long id;
 
     /**
-     * 物品所有者ID（逻辑外键，关联users表id）
+     * 物品所有者 ID（逻辑外键，关联 users 表 id）
      */
     private Long ownerId;
 
@@ -33,7 +33,7 @@ public class ItemsVO implements Serializable {
     private String ownerAvatar;
 
     /**
-     * 物品标题（如“九成新笔记本电脑”）
+     * 物品标题（如"九成新笔记本电脑”）
      */
     private String title;
 
@@ -43,7 +43,7 @@ public class ItemsVO implements Serializable {
     private String description;
 
     /**
-     * 物品分类ID（逻辑外键，关联categories表id）
+     * 物品分类 ID（逻辑外键，关联 categories 表 id）
      */
     private Long categoryId;
 
@@ -59,43 +59,17 @@ public class ItemsVO implements Serializable {
     private Integer conditionLevel;
 
     /**
-     * 物品图片URL集合，JSON格式存储
+     * 物品图片 URL 集合，JSON 格式存储
      */
     private List<String> images;
 
     /**
-     * 租赁单价（元）
+     * 售价（元）
      */
     private BigDecimal price;
 
     /**
-     * 计费类型：1-按天、2-按周、3-按月
-     * 对应枚举 BillingType
-     */
-    private Integer billingType;
-
-    /**
-     * 押金金额（元）
-     */
-    private BigDecimal deposit;
-
-    /**
-     * 价格是否可议：FALSE-不可议，TRUE-可议
-     */
-    private Boolean isNegotiable;
-
-    /**
-     * 最小租赁天数
-     */
-    private Integer minBorrowDays;
-
-    /**
-     * 最大租赁天数
-     */
-    private Integer maxBorrowDays;
-
-    /**
-     * 物品所在位置（如“XX校区教学楼”）
+     * 物品所在位置（如"XX 校区教学楼”）
      */
     private String location;
 
@@ -105,13 +79,7 @@ public class ItemsVO implements Serializable {
     private String address;
 
     /**
-     * 借用条件（如“仅限本校学生”）
-     */
-    private String borrowConditions;
-
-    /**
-     * 物品状态：1-可借用 2-已借出 3-已下架
-     * 对应枚举 ItemStatus
+     * 物品状态：1-待售 2-已售出 3-已下架
      */
     private Integer status;
 

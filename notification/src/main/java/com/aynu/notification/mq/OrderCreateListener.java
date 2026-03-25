@@ -64,20 +64,16 @@ public class OrderCreateListener {
         // 匹配消息类型并设置标题内容
         NotifyTypeEnum typeEnum = NotifyTypeEnum.of(message.getType());
         switch (typeEnum) {
-            case BORROW_MESSAGE:
-                po.setTitle("借用消息");
-                po.setContent("您有新的借用消息，请及时处理，订单id：" + message.getOrderNo());
+            case PURCHASE_MESSAGE:
+                po.setTitle("购买消息");
+                po.setContent("您有新的购买消息，请及时处理，订单 id：" + message.getOrderNo());
                 break;
             case REVIEW_MESSAGE:
                 po.setTitle("审核消息");
-                po.setContent("您有新的审核消息，请及时处理，订单id：" + message.getOrderNo());
-                break;
-            case RETURN_MESSAGE:
-                po.setTitle("归还消息");
-                po.setContent("您有新的归还消息，请及时处理，订单id：" + message.getOrderNo());
+                po.setContent("您有新的审核消息，请及时处理，订单 id：" + message.getOrderNo());
                 break;
             default:
-                log.warn("未知的消息类型: {}, 订单号: {}", message.getType(), message.getOrderNo());
+                log.warn("未知的消息类型：{}, 订单号：{}", message.getType(), message.getOrderNo());
                 throw new BadRequestException("Invalid message type: " + message.getType());
         }
 
@@ -90,6 +86,6 @@ public class OrderCreateListener {
         po.setUpdatedAt(now);
 
         systemBroadcastsMapper.insert(po);
-        log.info("系统消息创建成功，用户ID: {}", message.getUserId());
+        log.info("系统消息创建成功，用户 ID: {}", message.getUserId());
     }
 }

@@ -2,7 +2,6 @@ package com.aynu.order.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.IdUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.domain.AlipayTradePagePayModel;
@@ -58,7 +57,8 @@ import java.util.stream.Collectors;
 
 import static com.aynu.common.constants.MqConstants.Exchange.*;
 import static com.aynu.common.constants.MqConstants.Key.*;
-import static com.aynu.common.enums.NotifyTypeEnum.*;
+import static com.aynu.common.enums.NotifyTypeEnum.PURCHASE_MESSAGE;
+import static com.aynu.common.enums.NotifyTypeEnum.REVIEW_MESSAGE;
 
 @Slf4j
 @Service
@@ -78,10 +78,8 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
 
     @Override
-    @Transactional
-    public String createBorrowOrders(OrderDTO dto) {
+    public String createBorrowOrders(Long itemId) {
         Long userId = UserContext.getUser();
-        Long itemId = dto.getItemId();
 
         String lockKey = "order:lock:" + userId + ":" + itemId;
         RLock lock = redissonClient.getLock(lockKey);
@@ -100,67 +98,25 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             }
             if (item.getOwnerId()
                     .equals(userId)) {
-                log.error("不能借用属于自己的物品，itemId：{}", itemId);
-                throw new BadRequestException("不能借用属于自己的物品");
+                log.error("不能购买属于自己的物品，itemId：{}", itemId);
+                throw new BadRequestException("不能购买属于自己的物品");
             }
-            if (ItemStatus.AVAILABLE.getValue() != item.getStatus()) {
-                log.error("物品不可借用，itemId：{}", itemId);
+            if (ItemStatus.SOLD.getValue() != item.getStatus() || ItemStatus.OFF_SHELF.getValue() != item.getStatus()) {
+                log.error("物品不可购买，itemId：{}", itemId);
                 throw new BadRequestException("物品状态异常");
             }
 
-            Long plannedStartTime = dto.getPlannedStartTime();
-            Long plannedEndTime = dto.getPlannedEndTime();
-            long todayStartTime = LocalDate.now()
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli();
-
-            if (plannedStartTime == null || plannedEndTime == null || plannedStartTime < todayStartTime || plannedStartTime >= plannedEndTime) {
-                log.error("借用时间异常，开始时间：{}，结束时间：{}，itemId：{}", plannedStartTime, plannedEndTime, itemId);
-                throw new BadRequestException("借用时间参数不合法");
-            }
-
-            long diffMillis = plannedEndTime - plannedStartTime;
-            BigDecimal diffMillisBd = BigDecimal.valueOf(diffMillis);
-
-            BigDecimal millisPerDay = new BigDecimal("86400000");
-            BigDecimal millisPerWeek = new BigDecimal("604800000");
-            BigDecimal millisPerMonth = new BigDecimal("2592000000");
-
-            Integer billingType = item.getBillingType();
-            BigDecimal duration = switch (billingType) {
-                case 1 -> diffMillisBd.divide(millisPerDay, 2, RoundingMode.HALF_UP);
-                case 2 -> diffMillisBd.divide(millisPerWeek, 2, RoundingMode.HALF_UP);
-                case 3 -> diffMillisBd.divide(millisPerMonth, 2, RoundingMode.HALF_UP);
-                default -> throw new BadRequestException("未知的计费类型");
-            };
-
             BigDecimal price = item.getPrice();
-            BigDecimal deposit = item.getDeposit();
-            BigDecimal totalAmount = price.multiply(duration)
-                    .add(deposit)
-                    .setScale(2, RoundingMode.HALF_UP);
 
             BorrowOrdersPO borrowOrdersPO = new BorrowOrdersPO();
 
-            borrowOrdersPO.setOrderNo(IdUtil.getSnowflake()
-                    .nextIdStr());
-
             borrowOrdersPO.setItemId(itemId);
-            borrowOrdersPO.setBorrowerId(userId);
-            borrowOrdersPO.setLenderId(item.getOwnerId());
+            borrowOrdersPO.setBuyerId(userId);
+            borrowOrdersPO.setSellerId(item.getOwnerId());
             borrowOrdersPO.setTitle(item.getTitle());
             borrowOrdersPO.setPrice(price);
-            borrowOrdersPO.setBillingType(billingType);
-            borrowOrdersPO.setDeposit(deposit);
-
-            borrowOrdersPO.setBorrowDays(duration);
-            borrowOrdersPO.setTotalAmount(totalAmount);
 
             borrowOrdersPO.setStatus(1);
-            borrowOrdersPO.setPurpose(dto.getPurpose());
-            borrowOrdersPO.setPlannedStartTime(plannedStartTime);
-            borrowOrdersPO.setPlannedEndTime(plannedEndTime);
 
             borrowOrdersPO.setVersion(0);
             borrowOrdersPO.setCreatedAt(System.currentTimeMillis());
@@ -169,18 +125,19 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             save(borrowOrdersPO);
 
             // 即时通知出借人：有新订单申请
-            OrderNotifyMessage notifyMsg = new OrderNotifyMessage(borrowOrdersPO.getLenderId(),
-                    borrowOrdersPO.getOrderNo(),
-                    BORROW_MESSAGE.getValue());
+            OrderNotifyMessage notifyMsg = new OrderNotifyMessage(borrowOrdersPO.getSellerId(),
+                    borrowOrdersPO.getId(),
+                    PURCHASE_MESSAGE.getValue());
+
             rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(notifyMsg));
 
             // 延迟关单消息：24小时后检查状态
             rabbitMqHelper.sendDelayMessage(ORDER_DELAY_EXCHANGE,
                     ORDER_DELAY_KEY,
-                    borrowOrdersPO.getOrderNo(),
+                    borrowOrdersPO.getId(),
                     Duration.ofDays(1L));
 
-            return borrowOrdersPO.getOrderNo();
+            return borrowOrdersPO.getId();
         } finally {
             lock.unlock();
         }
@@ -213,9 +170,9 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         }
 
         if (isOut) {
-            wrapper.eq(BorrowOrdersPO::getLenderId, userId);
+            wrapper.eq(BorrowOrdersPO::getSellerId, userId);
         } else {
-            wrapper.eq(BorrowOrdersPO::getBorrowerId, userId);
+            wrapper.eq(BorrowOrdersPO::getBuyerId, userId);
         }
 
         Page<BorrowOrdersPO> pageResult = wrapper.page(pageQuery.toMpPage("created_at", false));
@@ -228,13 +185,13 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         List<UserDTO> userList;
         if (isOut) {
             Set<Long> borrowerIds = records.stream()
-                    .map(BorrowOrdersPO::getBorrowerId)
+                    .map(BorrowOrdersPO::getBuyerId)
                     .collect(Collectors.toSet());
 
             userList = userClient.queryUserByIds(borrowerIds);
         } else {
             Set<Long> lenderIds = records.stream()
-                    .map(BorrowOrdersPO::getLenderId)
+                    .map(BorrowOrdersPO::getSellerId)
                     .collect(Collectors.toSet());
 
             userList = userClient.queryUserByIds(lenderIds);
@@ -267,46 +224,37 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                 .map(record -> {
                     UserDTO user;
                     if (isOut) {
-                        user = finalUserMap.getOrDefault(record.getBorrowerId(), new UserDTO());
+                        user = finalUserMap.getOrDefault(record.getBuyerId(), new UserDTO());
                     } else {
-                        user = finalUserMap.getOrDefault(record.getLenderId(), new UserDTO());
+                        user = finalUserMap.getOrDefault(record.getSellerId(), new UserDTO());
                     }
                     ItemsVO item = finalItemMap.getOrDefault(record.getItemId(), new ItemsVO());
 
                     BorrowOrdersVO borrowOrdersVO = new BorrowOrdersVO();
                     borrowOrdersVO.setId(record.getId());
-                    borrowOrdersVO.setOrderNo(record.getOrderNo());
                     borrowOrdersVO.setItemId(record.getItemId());
                     borrowOrdersVO.setItemName(item.getTitle());
-                    borrowOrdersVO.setItemImages(item.getImages());
-                    borrowOrdersVO.setBorrowerId(record.getBorrowerId());
+                    borrowOrdersVO.setItemImageUrl(item.getImages());
+                    borrowOrdersVO.setBuyerId(record.getBuyerId());
 
                     if (isOut) {
-                        borrowOrdersVO.setBorrowerName(user.getUsername());
-                        borrowOrdersVO.setBorrowerAvatar(user.getAvatarUrl());
+                        borrowOrdersVO.setBuyerName(user.getUsername());
+                        borrowOrdersVO.setBuyerAvatarUrl(user.getAvatarUrl());
                     } else {
-                        borrowOrdersVO.setLenderName(user.getUsername());
-                        borrowOrdersVO.setLenderAvatar(user.getAvatarUrl());
+                        borrowOrdersVO.setSellerName(user.getUsername());
+                        borrowOrdersVO.setSellerAvatarUrl(user.getAvatarUrl());
                     }
 
-                    borrowOrdersVO.setLenderId(record.getLenderId());
+                    borrowOrdersVO.setSellerId(record.getSellerId());
                     borrowOrdersVO.setTitle(record.getTitle());
                     borrowOrdersVO.setPrice(record.getPrice());
-                    borrowOrdersVO.setBillingType(record.getBillingType());
-                    borrowOrdersVO.setDeposit(record.getDeposit());
-                    borrowOrdersVO.setBorrowDays(record.getBorrowDays());
                     borrowOrdersVO.setTotalAmount(record.getTotalAmount());
                     borrowOrdersVO.setStatus(record.getStatus());
                     borrowOrdersVO.setPurpose(record.getPurpose());
-                    borrowOrdersVO.setPlannedStartTime(record.getPlannedStartTime());
-                    borrowOrdersVO.setPlannedEndTime(record.getPlannedEndTime());
                     borrowOrdersVO.setConfirmTime(record.getConfirmTime());
                     borrowOrdersVO.setPayTime(record.getPayTime());
                     borrowOrdersVO.setPayTradeNo(record.getPayTradeNo());
                     borrowOrdersVO.setBorrowTime(record.getBorrowTime());
-                    borrowOrdersVO.setExpectReturnTime(record.getExpectReturnTime());
-                    borrowOrdersVO.setActualReturnTime(record.getActualReturnTime());
-                    borrowOrdersVO.setRefundTime(record.getRefundTime());
                     borrowOrdersVO.setCancelReason(record.getCancelReason());
                     borrowOrdersVO.setVersion(record.getVersion());
                     borrowOrdersVO.setCreatedAt(record.getCreatedAt());
@@ -325,7 +273,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         String id = dto.getId();
         Integer version = dto.getVersion();
 
-        boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, id)
+        boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getId, id)
                 .eq(BorrowOrdersPO::getStatus, 1)
                 .eq(BorrowOrdersPO::getVersion, version)
                 .set(BorrowOrdersPO::getStatus, 2)
@@ -338,13 +286,13 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             throw new BadRequestException("订单已被他人处理或数据已过期，请刷新页面重试");
         }
 
-        BorrowOrdersPO currentOrder = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, id)
+        BorrowOrdersPO currentOrder = lambdaQuery().eq(BorrowOrdersPO::getId, id)
                 .one();
         Long itemId = currentOrder.getItemId();
 
         boolean othersRejected = lambdaUpdate().eq(BorrowOrdersPO::getItemId, itemId)
                 .eq(BorrowOrdersPO::getStatus, 1)
-                .ne(BorrowOrdersPO::getOrderNo, id)
+                .ne(BorrowOrdersPO::getId, id)
                 .set(BorrowOrdersPO::getStatus, 7)
                 .set(BorrowOrdersPO::getCancelReason, "该物品已被他人借用")
                 .set(BorrowOrdersPO::getUpdatedAt, System.currentTimeMillis())
@@ -354,10 +302,10 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             log.info("物品 {} 的其余申请已自动拒绝", itemId);
         }
 
-        itemClient.batchUpdateStatus(Collections.singletonList(itemId), ItemStatus.BORROWED.getValue());
+        itemClient.batchUpdateStatus(Collections.singletonList(itemId), ItemStatus.SOLD.getValue());
 
-        OrderNotifyMessage notifyMsg = new OrderNotifyMessage(currentOrder.getBorrowerId(),
-                currentOrder.getOrderNo(),
+        OrderNotifyMessage notifyMsg = new OrderNotifyMessage(currentOrder.getBuyerId(),
+                currentOrder.getId(),
                 REVIEW_MESSAGE.getValue());
 
         List<BorrowOrdersPO> borrowOrdersPOS = lambdaQuery().eq(BorrowOrdersPO::getItemId, itemId)
@@ -371,8 +319,8 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             rejectMsgList = borrowOrdersPOS.stream()
                     .map(po -> {
                         OrderNotifyMessage orderNotifyMessage = new OrderNotifyMessage();
-                        orderNotifyMessage.setUserId(po.getBorrowerId());
-                        orderNotifyMessage.setOrderNo(po.getOrderNo());
+                        orderNotifyMessage.setUserId(po.getBuyerId());
+                        orderNotifyMessage.setOrderNo(po.getId());
                         orderNotifyMessage.setType(REVIEW_MESSAGE.getValue());
                         return orderNotifyMessage;
                     })
@@ -390,7 +338,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         String reason = dto.getReason();
 
         boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getStatus, 1)
-                .eq(BorrowOrdersPO::getOrderNo, orderNo)
+                .eq(BorrowOrdersPO::getId, orderNo)
                 .eq(BorrowOrdersPO::getVersion, version)
                 .set(BorrowOrdersPO::getStatus, 7)
                 .set(BorrowOrdersPO::getCancelReason, reason)
@@ -401,12 +349,12 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             throw new BadRequestException("订单已被他人处理或数据已过期，请刷新页面重试");
         }
 
-        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
+        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
                 .one();
 
         OrderNotifyMessage orderNotifyMessage = new OrderNotifyMessage();
-        orderNotifyMessage.setUserId(ordersPO.getBorrowerId());
-        orderNotifyMessage.setOrderNo(ordersPO.getOrderNo());
+        orderNotifyMessage.setUserId(ordersPO.getBuyerId());
+        orderNotifyMessage.setOrderNo(ordersPO.getId());
         orderNotifyMessage.setType(REVIEW_MESSAGE.getValue());
 
         rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(orderNotifyMessage));
@@ -415,11 +363,11 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
     @Override
     public void cancelBorrowOrders(BorrowCancelDTO dto) {
-        String orderNo = dto.getOrderNo();
+        String orderNo = dto.getId();
         Integer version = dto.getVersion();
 
         boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getVersion, version)
-                .eq(BorrowOrdersPO::getOrderNo, orderNo)
+                .eq(BorrowOrdersPO::getId, orderNo)
                 .eq(BorrowOrdersPO::getStatus, 1)
                 .set(BorrowOrdersPO::getStatus, 6)
                 .setSql("version = version + 1")
@@ -431,74 +379,12 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
     }
 
     @Override
-    public void returnBorrowOrders(BorrowReturnDTO dto) {
-        String orderNo = dto.getOrderNo();
-        Integer version = dto.getVersion();
-
-        boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
-                .eq(BorrowOrdersPO::getStatus, 3)
-                .eq(BorrowOrdersPO::getVersion, version)
-                .set(BorrowOrdersPO::getStatus, 4)
-                .setSql("version = version + 1")
-                .update();
-
-        if (!updated) {
-            throw new BadRequestException("订单已被他人处理或数据已过期，请刷新页面重试");
-        }
-
-        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
-                .one();
-
-        OrderNotifyMessage orderNotifyMessage = new OrderNotifyMessage(ordersPO.getLenderId(),
-                orderNo,
-                RETURN_MESSAGE.getValue());
-
-        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(orderNotifyMessage));
-
-        rabbitMqHelper.sendDelayMessage(ORDER_DELAY_EXCHANGE, ORDER_RETURN_DELAY_KEY, orderNo, Duration.ofDays(7));
-
-    }
-
-    @Override
-    @Transactional
-    public void confirmBorrowOrders(BorrowConfirmDTO dto) {
-        String orderNo = dto.getOrderNo();
-        Integer version = dto.getVersion();
-
-        boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
-                .eq(BorrowOrdersPO::getStatus, 4)
-                .eq(BorrowOrdersPO::getVersion, version)
-                .set(BorrowOrdersPO::getStatus, 5)
-                .setSql("version = version + 1")
-                .update();
-        if (!updated) {
-            throw new BadRequestException("订单已被他人处理或数据已过期，请刷新页面重试");
-        }
-
-        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
-                .one();
-
-        // todo 退还押金
-
-        // 更改物品状态
-        itemClient.batchUpdateStatus(Collections.singletonList(ordersPO.getItemId()), ItemStatus.AVAILABLE.getValue());
-
-        // todo 给物品所有人打款
-
-        // 创建消息
-        OrderNotifyMessage orderNotifyMessage = new OrderNotifyMessage(ordersPO.getBorrowerId(),
-                orderNo,
-                RETURN_MESSAGE.getValue());
-        rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, Collections.singletonList(orderNotifyMessage));
-    }
-
-    @Override
     public String payBorrowOrders(BorrowPayDTO dto) {
-        String orderNo = dto.getOrderNo();
+        String orderNo = dto.getId();
         Integer version = dto.getVersion();
 
         // 1. 严格校验：状态必须为 2 (待付款)
-        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
+        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
                 .eq(BorrowOrdersPO::getStatus, 2)
                 .eq(BorrowOrdersPO::getVersion, version)
                 .one();
@@ -509,7 +395,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
         // 2. 构造支付宝请求模型
         AlipayTradePagePayModel model = new AlipayTradePagePayModel();
-        model.setOutTradeNo(ordersPO.getOrderNo());
+        model.setOutTradeNo(ordersPO.getId());
         model.setTotalAmount(ordersPO.getTotalAmount()
                 .toString());
         model.setSubject("物品租赁：" + ordersPO.getTitle());
@@ -587,7 +473,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
         if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
             // 4. 修改订单状态 (status=2 确保幂等)，同时保存支付宝交易号
-            boolean updateResult = lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
+            boolean updateResult = lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
                     .eq(BorrowOrdersPO::getStatus, 2)
                     .set(BorrowOrdersPO::getStatus, 3)
                     .set(BorrowOrdersPO::getPayTradeNo, tradeNo)
@@ -601,16 +487,16 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
             // 异步更新借用者以及出借人的统计信息（已借出数量和借用中数量）
             CompletableFuture.runAsync(() -> {
-                        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
+                        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
                                 .one();
 
                         List<UpdateStatsDTO> updateStatsDTOs = Arrays.asList(UpdateStatsDTO.builder()
-                                        .userId(ordersPO.getBorrowerId())
+                                        .userId(ordersPO.getBuyerId())
                                         .type(2)
                                         .isAdd(true)
                                         .build(),
                                 UpdateStatsDTO.builder()
-                                        .userId(ordersPO.getLenderId())
+                                        .userId(ordersPO.getSellerId())
                                         .type(3)
                                         .isAdd(true)
                                         .build());
@@ -631,7 +517,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         log.info("【支付补偿】开始主动向支付宝查询订单状态，商户订单号：{}", orderNo);
 
         // 1. 查询本地订单，确认是否真的需要同步（避免无效查询）
-        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
+        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
                 .one();
 
         if (ordersPO == null) {
@@ -677,7 +563,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                     }
 
                     // 5. 更新本地订单状态（使用 status=2 作为条件，确保幂等更新）
-                    boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
+                    boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
                             .eq(BorrowOrdersPO::getStatus, 2)
                             .set(BorrowOrdersPO::getStatus, 3)
                             .update();
@@ -687,7 +573,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                     }
                 } else if ("TRADE_CLOSED".equals(tradeStatus)) {
                     log.info("【支付补偿】订单 {} 在支付宝端已关闭", orderNo);
-//                    lambdaUpdate().eq(BorrowOrdersPO::getOrderNo, orderNo)
+//                    lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
 //                            .eq(BorrowOrdersPO::getStatus, 2)
 //                            .set(BorrowOrdersPO::getStatus, 5) // 假设 5 是已关闭
 //                            .update();
@@ -707,7 +593,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
     @Override
     public BorrowOrdersVO getBorrowOrdersDetail(String orderNo) {
-        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getOrderNo, orderNo)
+        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
                 .one();
 
         Long itemId = ordersPO.getItemId();
@@ -715,21 +601,21 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         ItemsVO itemVO = itemClient.getById(itemId);
 
 
-        Long borrowerId = ordersPO.getBorrowerId();
+        Long borrowerId = ordersPO.getBuyerId();
 
         UserDTO borrowUser = userClient.queryUserById(borrowerId);
 
-        Long lenderId = ordersPO.getLenderId();
+        Long lenderId = ordersPO.getSellerId();
 
         UserDTO lenderUser = userClient.queryUserById(lenderId);
 
         BorrowOrdersVO borrowOrdersVO = BeanUtil.toBean(ordersPO, BorrowOrdersVO.class);
-        borrowOrdersVO.setItemImages(itemVO.getImages());
+        borrowOrdersVO.setItemImageUrl(itemVO.getImages());
         borrowOrdersVO.setItemName(itemVO.getTitle());
-        borrowOrdersVO.setBorrowerName(borrowUser.getUsername());
-        borrowOrdersVO.setBorrowerAvatar(borrowUser.getAvatarUrl());
-        borrowOrdersVO.setLenderName(lenderUser.getUsername());
-        borrowOrdersVO.setLenderAvatar(lenderUser.getAvatarUrl());
+        borrowOrdersVO.setBuyerName(borrowUser.getUsername());
+        borrowOrdersVO.setBuyerAvatarUrl(borrowUser.getAvatarUrl());
+        borrowOrdersVO.setSellerName(lenderUser.getUsername());
+        borrowOrdersVO.setSellerAvatarUrl(lenderUser.getAvatarUrl());
 
         return borrowOrdersVO;
     }
@@ -877,8 +763,8 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         Set<Long> userIds = new HashSet<>();
 
         records.forEach(record -> {
-            userIds.add(record.getBorrowerId());
-            userIds.add(record.getLenderId());
+            userIds.add(record.getBuyerId());
+            userIds.add(record.getSellerId());
         });
 
         List<UserDTO> userList = userClient.queryUserByIds(userIds);
@@ -910,39 +796,30 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                 .map(record -> {
                     UserDTO userBorrower;
                     UserDTO userLender;
-                    userBorrower = finalUserMap.getOrDefault(record.getBorrowerId(), new UserDTO());
-                    userLender = finalUserMap.getOrDefault(record.getLenderId(), new UserDTO());
+                    userBorrower = finalUserMap.getOrDefault(record.getBuyerId(), new UserDTO());
+                    userLender = finalUserMap.getOrDefault(record.getSellerId(), new UserDTO());
                     ItemsVO item = finalItemMap.getOrDefault(record.getItemId(), new ItemsVO());
 
                     BorrowOrdersVO borrowOrdersVO = new BorrowOrdersVO();
                     borrowOrdersVO.setId(record.getId());
-                    borrowOrdersVO.setOrderNo(record.getOrderNo());
                     borrowOrdersVO.setItemId(record.getItemId());
                     borrowOrdersVO.setItemName(item.getTitle());
-                    borrowOrdersVO.setItemImages(item.getImages());
-                    borrowOrdersVO.setBorrowerId(record.getBorrowerId());
-                    borrowOrdersVO.setBorrowerName(userBorrower.getUsername());
-                    borrowOrdersVO.setBorrowerAvatar(userBorrower.getAvatarUrl());
-                    borrowOrdersVO.setLenderName(userLender.getUsername());
-                    borrowOrdersVO.setLenderAvatar(userLender.getAvatarUrl());
-                    borrowOrdersVO.setLenderId(record.getLenderId());
+                    borrowOrdersVO.setItemImageUrl(item.getImages());
+                    borrowOrdersVO.setBuyerId(record.getBuyerId());
+                    borrowOrdersVO.setBuyerName(userBorrower.getUsername());
+                    borrowOrdersVO.setBuyerAvatarUrl(userBorrower.getAvatarUrl());
+                    borrowOrdersVO.setSellerName(userLender.getUsername());
+                    borrowOrdersVO.setSellerAvatarUrl(userLender.getAvatarUrl());
+                    borrowOrdersVO.setSellerId(record.getSellerId());
                     borrowOrdersVO.setTitle(record.getTitle());
                     borrowOrdersVO.setPrice(record.getPrice());
-                    borrowOrdersVO.setBillingType(record.getBillingType());
-                    borrowOrdersVO.setDeposit(record.getDeposit());
-                    borrowOrdersVO.setBorrowDays(record.getBorrowDays());
                     borrowOrdersVO.setTotalAmount(record.getTotalAmount());
                     borrowOrdersVO.setStatus(record.getStatus());
                     borrowOrdersVO.setPurpose(record.getPurpose());
-                    borrowOrdersVO.setPlannedStartTime(record.getPlannedStartTime());
-                    borrowOrdersVO.setPlannedEndTime(record.getPlannedEndTime());
                     borrowOrdersVO.setConfirmTime(record.getConfirmTime());
                     borrowOrdersVO.setPayTime(record.getPayTime());
                     borrowOrdersVO.setPayTradeNo(record.getPayTradeNo());
                     borrowOrdersVO.setBorrowTime(record.getBorrowTime());
-                    borrowOrdersVO.setExpectReturnTime(record.getExpectReturnTime());
-                    borrowOrdersVO.setActualReturnTime(record.getActualReturnTime());
-                    borrowOrdersVO.setRefundTime(record.getRefundTime());
                     borrowOrdersVO.setCancelReason(record.getCancelReason());
                     borrowOrdersVO.setVersion(record.getVersion());
                     borrowOrdersVO.setCreatedAt(record.getCreatedAt());

@@ -46,7 +46,8 @@ public class RabbitMqHelper {
     public <T> void send(String exchange, String routingKey, T t) {
         log.debug("准备发送消息，exchange：{}， RoutingKey：{}， message：{}", exchange, routingKey, t);
         // 1.设置消息标示，用于消息确认，消息发送失败直接抛出异常，交给调用者处理
-        String id = UUID.randomUUID().toString(true);
+        String id = UUID.randomUUID()
+                .toString(true);
         CorrelationData correlationData = new CorrelationData(id);
         // 2.设置发送超时时间为500毫秒
         rabbitTemplate.setReplyTimeout(500);
@@ -59,7 +60,8 @@ public class RabbitMqHelper {
      */
     public <T> void sendDelayMessage(String exchange, String routingKey, T t, Duration delay) {
         // 1.设置消息标示，用于消息确认，消息发送失败直接抛出异常，交给调用者处理
-        String id = UUID.randomUUID().toString(true);
+        String id = UUID.randomUUID()
+                .toString(true);
         CorrelationData correlationData = new CorrelationData(id);
         // 2.设置发送超时时间为500毫秒
         rabbitTemplate.setReplyTimeout(500);

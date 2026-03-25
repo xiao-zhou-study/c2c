@@ -10,8 +10,8 @@ import lombok.Getter;
 public enum OrderStatus implements BaseEnum {
     PENDING_CONFIRM(1, "pending_confirm", "待确认"),
     PENDING_PAYMENT(2, "pending_payment", "待付款"),
-    IN_PROGRESS(3, "in_progress", "借用中"),
-    PENDING_RETURN_CONFIRM(4, "pending_return_confirm", "待归还确认"),
+    IN_PROGRESS(3, "in_progress", "交易中/服务中"),
+    PENDING_RETURN_CONFIRM(4, "pending_return_confirm", "待评价"),
     COMPLETED(5, "completed", "已完成"),
     CANCELLED(6, "cancelled", "已取消"),
     REJECTED(7, "rejected", "已拒绝"),

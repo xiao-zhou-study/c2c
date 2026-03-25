@@ -8,8 +8,8 @@ import lombok.Getter;
 
 @Getter
 public enum ItemStatus implements BaseEnum {
-    AVAILABLE(1, "可借用"),
-    BORROWED(2, "已借出"),
+    FOR_SALE(1, "待售"),
+    SOLD(2, "已售出"),
     OFF_SHELF(3, "已下架");
 
     @JsonValue

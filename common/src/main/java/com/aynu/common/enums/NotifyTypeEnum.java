@@ -11,19 +11,14 @@ import lombok.Getter;
 public enum NotifyTypeEnum {
 
     /**
-     * 借用消息
+     * 购买消息
      */
-    BORROW_MESSAGE(1, "borrow", "借用消息"),
+    PURCHASE_MESSAGE(1, "purchase", "购买消息"),
 
     /**
      * 审核消息
      */
-    REVIEW_MESSAGE(2, "review", "审核消息"),
-
-    /**
-     * 归还消息
-     */
-    RETURN_MESSAGE(3, "return", "归还消息");
+    REVIEW_MESSAGE(2, "review", "审核消息");
 
     @JsonValue
     @EnumValue

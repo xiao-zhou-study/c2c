@@ -5,7 +5,6 @@ import cn.hutool.json.JSONUtil;
 import com.aynu.api.client.user.UserClient;
 import com.aynu.api.dto.item.ItemsVO;
 import com.aynu.api.dto.user.UserDTO;
-import com.aynu.api.enums.item.BillingType;
 import com.aynu.api.enums.item.ConditionLevel;
 import com.aynu.api.enums.item.ItemStatus;
 import com.aynu.api.enums.user.StatsEnum;
@@ -69,7 +68,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         this.copyDtoToEntity(itemsDTO, item);
 
         item.setOwnerId(userId);
-        item.setStatus(ItemStatus.AVAILABLE);
+        item.setStatus(ItemStatus.FOR_SALE.getValue());
         item.setViewCount(0);
         item.setFavoriteCount(0);
         item.setCreatedAt(System.currentTimeMillis());
@@ -121,9 +120,6 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         if (conditionLevel != null) {
             ConditionLevel conditionLevel1 = ConditionLevel.of(conditionLevel);
             wrapper.eq(Items::getConditionLevel, conditionLevel1);
-        }
-        if (isDeposit != null && isDeposit) {
-            wrapper.eq(Items::getDeposit, BigDecimal.ZERO);
         }
         if (StringUtils.isNotBlank(location)) {
             wrapper.like(Items::getLocation, location);
@@ -224,7 +220,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
                 .list();
         long totalCount = allItems.size();
 
-        Map<ItemStatus, Long> statusCount = allItems.stream()
+        Map<Integer, Long> statusCount = allItems.stream()
                 .collect(Collectors.groupingBy(Items::getStatus, Collectors.counting()));
 
         Map<Long, Long> categoryCount = allItems.stream()
@@ -237,7 +233,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
 
     @Override
     public List<ItemsVO> getRecommendedItems(Integer limit) {
-        List<Items> items = lambdaQuery().eq(Items::getStatus, ItemStatus.AVAILABLE)
+        List<Items> items = lambdaQuery().eq(Items::getStatus, ItemStatus.FOR_SALE)
                 .orderByDesc(Items::getFavoriteCount)
                 .last("LIMIT " + limit)
                 .list();
@@ -247,7 +243,7 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
     @Override
     public List<ItemsVO> getHotItems(Integer days, Integer limit) {
         long startTime = System.currentTimeMillis() - (days * 24 * 60 * 60 * 1000L);
-        List<Items> items = lambdaQuery().eq(Items::getStatus, ItemStatus.AVAILABLE)
+        List<Items> items = lambdaQuery().eq(Items::getStatus, ItemStatus.FOR_SALE)
                 .ge(Items::getCreatedAt, startTime)
                 .orderByDesc(Items::getViewCount)
                 .last("LIMIT " + limit)
@@ -310,23 +306,16 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         entity.setDescription(dto.getDescription());
         entity.setCategoryId(dto.getCategoryId());
 
-        entity.setConditionLevel(ConditionLevel.of(dto.getConditionLevel()));
+        entity.setConditionLevel(ConditionLevel.of(dto.getConditionLevel())
+                .getValue());
 
         if (CollUtil.isNotEmpty(dto.getImages())) {
             entity.setImages(JSONUtil.toJsonStr(dto.getImages()));
         }
 
         entity.setPrice(dto.getPrice());
-
-        entity.setBillingType(BillingType.of(dto.getBillingType()));
-
-        entity.setDeposit(dto.getDeposit());
-        entity.setIsNegotiable(dto.getIsNegotiable());
-        entity.setMinBorrowDays(dto.getMinBorrowDays());
-        entity.setMaxBorrowDays(dto.getMaxBorrowDays());
         entity.setLocation(dto.getLocation());
         entity.setAddress(dto.getAddress());
-        entity.setBorrowConditions(dto.getBorrowConditions());
     }
 
     private List<ItemsVO> convertToVOList(List<Items> items) {
@@ -358,20 +347,11 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         vo.setTitle(item.getTitle());
         vo.setDescription(item.getDescription());
         vo.setCategoryId(item.getCategoryId());
-        vo.setConditionLevel(item.getConditionLevel()
-                .getValue());
+        vo.setConditionLevel(item.getConditionLevel());
         vo.setPrice(item.getPrice());
-        vo.setBillingType(item.getBillingType()
-                .getValue());
-        vo.setDeposit(item.getDeposit());
-        vo.setIsNegotiable(item.getIsNegotiable());
-        vo.setMinBorrowDays(item.getMinBorrowDays());
-        vo.setMaxBorrowDays(item.getMaxBorrowDays());
         vo.setLocation(item.getLocation());
         vo.setAddress(item.getAddress());
-        vo.setBorrowConditions(item.getBorrowConditions());
-        vo.setStatus(item.getStatus()
-                .getValue());
+        vo.setStatus(item.getStatus());
         vo.setViewCount(item.getViewCount());
         vo.setFavoriteCount(item.getFavoriteCount());
 

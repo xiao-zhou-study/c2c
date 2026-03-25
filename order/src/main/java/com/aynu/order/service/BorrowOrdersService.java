@@ -16,7 +16,7 @@ import java.util.Map;
 
 public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
 
-    String createBorrowOrders(OrderDTO dto);
+    String createBorrowOrders(Long itemId);
 
     PageDTO<BorrowOrdersVO> getBorrowOrdersPage(PageQuery pageQuery,
                                                 String keyword,
@@ -30,10 +30,6 @@ public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
     void rejectBorrowOrders(BorrowRejectDTO dto);
 
     void cancelBorrowOrders(BorrowCancelDTO dto);
-
-    void returnBorrowOrders(BorrowReturnDTO dto);
-
-    void confirmBorrowOrders(BorrowConfirmDTO dto);
 
     String payBorrowOrders(BorrowPayDTO dto);
 

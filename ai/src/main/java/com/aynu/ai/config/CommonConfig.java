@@ -24,9 +24,6 @@ import java.util.List;
 @Configuration
 public class CommonConfig {
     @Autowired
-    private OpenAiChatModel model;
-
-    @Autowired
     private ChatMemoryStore redisChatMemoryStore;
 
     @Bean

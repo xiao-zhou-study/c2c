@@ -11,31 +11,25 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.yourcompany</groupId>
+    <groupId>com.aynu</groupId>
     <artifactId>ai</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>ai</name>
-    <description>AI project with LangChain4j and Nacos</description>
+    <description>AI project with LangChain4j and Nacos - Reactive Mode</description>
 
     <properties>
         <java.version>17</java.version>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
         <spring-cloud.version>2024.0.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.3.2</spring-cloud-alibaba.version>
         <langchain4j.version>1.0.1-beta6</langchain4j.version>
     </properties>
 
     <dependencies>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
@@ -43,7 +37,7 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

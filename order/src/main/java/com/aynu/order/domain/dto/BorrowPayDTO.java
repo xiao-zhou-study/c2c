@@ -16,7 +16,7 @@ public class BorrowPayDTO implements Serializable {
     /**
      * 订单编号
      */
-    private String orderNo;
+    private String id;
 
     /**
      * 版本号

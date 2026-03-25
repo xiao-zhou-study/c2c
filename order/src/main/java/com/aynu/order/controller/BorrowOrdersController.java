@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "借用订单表接口")
+@Tag(name = "订单表接口")
 @RestController
 @RequestMapping("/borrow_orders")
 @RequiredArgsConstructor
@@ -27,18 +27,18 @@ public class BorrowOrdersController {
     private final BorrowOrdersService borrowOrdersService;
 
     /**
-     * 创建借用订单
+     * 创建购买订单
      *
-     * @param dto 借用订单信息
-     * @return 借用订单ID
+     * @param itemId 物品Id
+     * @return 订单ID
      */
     @PostMapping("/create")
-    public String createBorrowOrders(@RequestBody OrderDTO dto) {
-        return borrowOrdersService.createBorrowOrders(dto);
+    public String createBorrowOrders(@RequestParam Long itemId) {
+        return borrowOrdersService.createBorrowOrders(itemId);
     }
 
     /**
-     * 分页获取我借出的订单
+     * 分页获取我卖出的订单
      *
      * @param pageQuery 分页参数
      * @param keyword   关键词
@@ -114,26 +114,6 @@ public class BorrowOrdersController {
     @PutMapping("/cancel")
     public void cancelBorrowOrders(@RequestBody BorrowCancelDTO dto) {
         borrowOrdersService.cancelBorrowOrders(dto);
-    }
-
-    /**
-     * 归还借用订单
-     *
-     * @param dto 借用订单信息
-     */
-    @PutMapping("/return")
-    public void returnBorrowOrders(@RequestBody BorrowReturnDTO dto) {
-        borrowOrdersService.returnBorrowOrders(dto);
-    }
-
-    /**
-     * 确认归还订单
-     *
-     * @param dto 借用订单信息
-     */
-    @PutMapping("/confirm")
-    public void confirmBorrowOrders(@RequestBody BorrowConfirmDTO dto) {
-        borrowOrdersService.confirmBorrowOrders(dto);
     }
 
     /**
