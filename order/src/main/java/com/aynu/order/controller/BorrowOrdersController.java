@@ -3,7 +3,10 @@ package com.aynu.order.controller;
 
 import com.aynu.common.domain.dto.PageDTO;
 import com.aynu.common.domain.query.PageQuery;
-import com.aynu.order.domain.dto.*;
+import com.aynu.order.domain.dto.BorrowAgreeDTO;
+import com.aynu.order.domain.dto.BorrowCancelDTO;
+import com.aynu.order.domain.dto.BorrowPayDTO;
+import com.aynu.order.domain.dto.BorrowRejectDTO;
 import com.aynu.order.domain.vo.BorrowOrdersAmountVO;
 import com.aynu.order.domain.vo.BorrowOrdersPieVO;
 import com.aynu.order.domain.vo.BorrowOrdersTrendVO;
@@ -45,7 +48,7 @@ public class BorrowOrdersController {
      * @param status    订单状态
      * @param startTime 开始时间
      * @param endTime   结束时间
-     * @return 借用订单分页列表
+     * @return 二手交易订单分页列表
      */
     @GetMapping("/page/out")
     public PageDTO<BorrowOrdersVO> getBorrowOrdersPageOut(PageQuery pageQuery,
@@ -57,14 +60,14 @@ public class BorrowOrdersController {
     }
 
     /**
-     * 分页获取我借用的订单
+     * 分页获取我买到的订单
      *
      * @param pageQuery 分页参数
      * @param keyword   关键词
      * @param status    订单状态
      * @param startTime 开始时间
      * @param endTime   结束时间
-     * @return 借用订单分页列表
+     * @return 二手交易订单分页列表
      */
     @GetMapping("/page/in")
     public PageDTO<BorrowOrdersVO> getBorrowOrdersPageIn(PageQuery pageQuery,
@@ -79,7 +82,7 @@ public class BorrowOrdersController {
      * 获取单个订单详情
      *
      * @param orderNo 订单编号
-     * @return 借用订单详情
+     * @return 二手交易订单详情
      */
     @GetMapping("/detail")
     public BorrowOrdersVO getBorrowOrdersDetail(@RequestParam String orderNo) {
@@ -87,7 +90,7 @@ public class BorrowOrdersController {
     }
 
     /**
-     * 同意借用订单
+     * 同意交易订单
      *
      * @param dto dto
      */
@@ -97,9 +100,9 @@ public class BorrowOrdersController {
     }
 
     /**
-     * 拒绝借用订单
+     * 拒绝交易订单
      *
-     * @param dto 借用订单信息
+     * @param dto 交易订单信息
      */
     @PutMapping("/reject")
     public void rejectBorrowOrders(@RequestBody BorrowRejectDTO dto) {
@@ -107,9 +110,9 @@ public class BorrowOrdersController {
     }
 
     /**
-     * 取消借用订单
+     * 取消交易订单
      *
-     * @param dto 借用订单信息
+     * @param dto 交易订单信息
      */
     @PutMapping("/cancel")
     public void cancelBorrowOrders(@RequestBody BorrowCancelDTO dto) {
@@ -135,9 +138,6 @@ public class BorrowOrdersController {
         log.info("支付宝异步回调接收到参数: {}", params);
         return borrowOrdersService.handleNotify(params);
     }
-
-    // todo： 争议订单
-
 
     /**
      * 获取订单数量

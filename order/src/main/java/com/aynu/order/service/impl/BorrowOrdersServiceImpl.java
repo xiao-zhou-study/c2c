@@ -87,7 +87,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         boolean locked = lock.tryLock();
         if (!locked) {
             log.warn("触发幂等校验，请勿重复提交订单，userId: {}, itemId: {}", userId, itemId);
-            throw new BadRequestException("您已提交过该物品的申请，请耐心等待出借人处理");
+            throw new BadRequestException("您已提交过该物品的购买申请，请耐心等待卖家处理");
         }
 
         try {
@@ -124,7 +124,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
             save(borrowOrdersPO);
 
-            // 即时通知出借人：有新订单申请
+            // 即时通知卖家：有新订单申请
             OrderNotifyMessage notifyMsg = new OrderNotifyMessage(borrowOrdersPO.getSellerId(),
                     borrowOrdersPO.getId(),
                     PURCHASE_MESSAGE.getValue());
@@ -294,7 +294,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                 .eq(BorrowOrdersPO::getStatus, 1)
                 .ne(BorrowOrdersPO::getId, id)
                 .set(BorrowOrdersPO::getStatus, 7)
-                .set(BorrowOrdersPO::getCancelReason, "该物品已被他人借用")
+                .set(BorrowOrdersPO::getCancelReason, "该物品已被他人购买")
                 .set(BorrowOrdersPO::getUpdatedAt, System.currentTimeMillis())
                 .update();
 
@@ -398,7 +398,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         model.setOutTradeNo(ordersPO.getId());
         model.setTotalAmount(ordersPO.getTotalAmount()
                 .toString());
-        model.setSubject("物品租赁：" + ordersPO.getTitle());
+        model.setSubject("物品交易：" + ordersPO.getTitle());
         model.setProductCode("FAST_INSTANT_TRADE_PAY");
 
         // 3. 设置订单超时（建议与你延迟队列时间同步）
@@ -485,7 +485,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                 log.info("【支付宝回调】订单 {} 状态已在之前更新过，跳过本次处理", orderNo);
             }
 
-            // 异步更新借用者以及出借人的统计信息（已借出数量和借用中数量）
+            // 异步更新买家以及卖家的统计信息（已卖出数量和购买中数量）
             CompletableFuture.runAsync(() -> {
                         BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
                                 .one();
@@ -573,10 +573,6 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                     }
                 } else if ("TRADE_CLOSED".equals(tradeStatus)) {
                     log.info("【支付补偿】订单 {} 在支付宝端已关闭", orderNo);
-//                    lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
-//                            .eq(BorrowOrdersPO::getStatus, 2)
-//                            .set(BorrowOrdersPO::getStatus, 5) // 假设 5 是已关闭
-//                            .update();
                 }
             } else {
                 // ACQ.TRADE_NOT_EXIST 表示用户还没扫码打开过支付页，支付宝还没生成这笔交易

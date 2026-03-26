@@ -354,6 +354,8 @@ public class ItemsServiceImpl extends ServiceImpl<ItemsMapper, Items> implements
         vo.setStatus(item.getStatus());
         vo.setViewCount(item.getViewCount());
         vo.setFavoriteCount(item.getFavoriteCount());
+        vo.setCreatedAt(item.getCreatedAt());
+        vo.setUpdatedAt(item.getUpdatedAt());
 
         if (StringUtils.isNotBlank(item.getImages())) {
             vo.setImages(JSONUtil.toList(item.getImages(), String.class));
