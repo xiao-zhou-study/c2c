@@ -2239,7 +2239,7 @@
 
 **GET** `http://localhost:8080/os/borrow_orders/page/out`
 
-**说明**：获取当前用户作为**出借人**（Lender）所拥有的订单列表。支持根据订单状态、关键词（如物品名称、借用人姓名）以及订单创建时间进行筛选。常用于个人中心的“我借出的”模块。
+**说明**：获取当前用户作为**卖家**（Seller）所拥有的订单列表，即"我卖出的"订单。支持根据订单状态、关键词（物品名称或买家姓名）以及订单创建时间进行筛选。常用于个人中心的"我卖出的"模块。
 
 **Parameters**
 
@@ -2248,8 +2248,8 @@
 | Authorization | Header | String | 是 | - | 用户登录访问令牌 |
 | pageNo | Query | Integer | 否 | 1 | 当前页码 |
 | pageSize | Query | Integer | 否 | 20 | 每页展示条数 |
-| status | Query | Integer | 否 | - | 订单状态 (1-待确认, 3-借用中, 5-已完成等) |
-| keyword | Query | String | 否 | - | 搜索关键词 (模糊匹配物品名或借用人) |
+| status | Query | Integer | 否 | - | 订单状态 (1-待确认, 2-待付款, 3-借用中, 4-待归还确认, 5-已完成, 6-已取消, 7-已拒绝, 8-争议中) |
+| keyword | Query | String | 否 | - | 搜索关键词 (模糊匹配物品名或买家姓名) |
 | startTime | Query | Long | 否 | - | 筛选范围：订单创建开始时间戳 |
 | endTime | Query | Long | 否 | - | 筛选范围：订单创建结束时间戳 |
 | sortBy | Query | String | 否 | - | 排序字段 |
@@ -2267,34 +2267,24 @@
     "pages": 1,
     "list": [
       {
-        "id": 1001,
-        "orderNo": "BOR20260213123456",
+        "id": "1001",
         "itemId": 5001,
         "itemName": "专业单反相机",
-        "itemImages": ["http://img.top/item1.jpg"],
-        "borrowerId": 2001,
-        "borrowerName": "王小明",
-        "borrowerAvatar": "http://img.top/avatar/b1.jpg",
-        "lenderId": 2002,
-        "lenderName": "我（当前用户）",
-        "lenderAvatar": "http://img.top/avatar/me.jpg",
-        "title": "借用专业单反相机",
+        "itemImageUrl": ["http://img.top/item1.jpg"],
+        "buyerId": 2001,
+        "buyerName": "王小明",
+        "buyerAvatarUrl": "http://img.top/avatar/b1.jpg",
+        "sellerId": 2002,
+        "sellerName": "我（当前用户）",
+        "sellerAvatarUrl": "http://img.top/avatar/me.jpg",
+        "title": "购买专业单反相机",
         "price": 50.00,
-        "billingType": 1,
-        "deposit": 500.00,
-        "borrowDays": 3.0,
-        "totalAmount": 650.00,
         "status": 3,
         "purpose": "摄影社团拍摄活动",
-        "plannedStartTime": 1739452800000,
-        "plannedEndTime": 1739712000000,
         "confirmTime": 1739452300000,
         "payTime": 1739452310000,
         "payTradeNo": "WX123456789",
         "borrowTime": 1739452320000,
-        "expectReturnTime": 1739712000000,
-        "actualReturnTime": null,
-        "refundTime": null,
         "cancelReason": null,
         "version": 4,
         "createdAt": 1739452200000,
@@ -2303,79 +2293,79 @@
     ]
   }
 }
-
 ```
 
 ### 10.3 分页获取我借用的订单接口
 
 **GET** `http://localhost:8080/os/borrow_orders/page/in`
 
-**说明**：获取当前用户作为**借用人**（Borrower）所发起的订单列表。支持根据订单状态、关键词（模糊匹配物品名或出借人姓名）以及时间范围进行筛选。常用于个人中心的“我借入的”模块。
+**说明**：分页获取我买到的订单
 
 **Parameters**
 
 | 字段名 | 位置 | 字段类型 | 是否必填 | 默认值 | 字段解释 |
 | --- | --- | --- | --- | --- | --- |
-| Authorization | Header | String | 是 | - | 用户登录访问令牌 |
-| pageNo | Query | Integer | 否 | 1 | 当前页码 |
-| pageSize | Query | Integer | 否 | 20 | 每页展示条数 |
-| status | Query | Integer | 否 | - | 订单状态 (1-待确认, 2-待付款, 3-借用中等) |
-| keyword | Query | String | 否 | - | 搜索关键词 (模糊匹配物品名或出借人) |
-| startTime | Query | Long | 否 | - | 筛选范围：订单创建开始时间戳 |
-| endTime | Query | Long | 否 | - | 筛选范围：订单创建结束时间戳 |
-| sortBy | Query | String | 否 | - | 排序字段 |
-| isAsc | Query | Boolean | 否 | true | 是否升序 |
+| pageNo | query | Integer | 否 | 1 | 页码 |
+| pageSize | query | Integer | 否 | 20 | 每页大小 |
+| isAsc | query | Boolean | 否 | true | 是否升序 |
+| sortBy | query | String | 否 | - | 排序字段 |
+| keyword | query | String | 否 | - | 关键词 |
+| status | query | Integer | 否 | - | 订单状态 |
+| startTime | query | Long | 否 | - | 开始时间 |
+| endTime | query | Long | 否 | - | 结束时间 |
 
 **Returns (application/json)**
 
 ```json
 {
   "code": 0,
-  "msg": "查询成功",
-  "ts": 1739452385000,
+  "msg": "操作成功",
+  "ts": 1739452339000,
   "data": {
-    "total": 8,
+    "total": 10,
     "pages": 1,
     "list": [
       {
-        "id": 2005,
-        "orderNo": "BOR20260213889900",
-        "itemId": 6012,
-        "itemName": "手持云台稳定器",
-        "itemImages": ["http://img.top/gimbal.png"],
-        "borrowerId": 2002,
-        "borrowerName": "我（当前用户）",
-        "borrowerAvatar": "http://img.top/avatar/me.jpg",
-        "lenderId": 3005,
-        "lenderName": "李华",
-        "lenderAvatar": "http://img.top/avatar/l5.jpg",
-        "title": "借用手持云台稳定器",
-        "price": 20.00,
-        "billingType": 1,
-        "deposit": 200.00,
-        "borrowDays": 2.0,
-        "totalAmount": 240.00,
-        "status": 2,
-        "purpose": "周末郊游Vlog拍摄",
-        "plannedStartTime": 1739581200000,
-        "plannedEndTime": 1739754000000,
-        "confirmTime": 1739452000000,
-        "payTime": null,
-        "payTradeNo": null,
-        "borrowTime": null,
-        "expectReturnTime": 1739754000000,
-        "actualReturnTime": null,
-        "refundTime": null,
+        "id": "1872500000000001",
+        "itemId": 1001,
+        "itemName": "无人机",
+        "itemImageUrl": ["https://cdn.example.com/img/drone.jpg"],
+        "buyerId": 10001,
+        "buyerName": "李四",
+        "buyerAvatarUrl": "https://cdn.example.com/avatar/lisi.jpg",
+        "sellerId": 10002,
+        "sellerName": "王五",
+        "sellerAvatarUrl": "https://cdn.example.com/avatar/wangwu.jpg",
+        "title": "大疆无人机租借",
+        "price": 50.00,
+        "status": 3,
+        "purpose": "周末航拍",
+        "confirmTime": 1739452200000,
+        "payTime": 1739452260000,
+        "payTradeNo": "支付宝2026011212345678",
+        "borrowTime": 1739452320000,
         "cancelReason": null,
-        "version": 2,
-        "createdAt": 1739451000000,
-        "updatedAt": 1739452000000
+        "version": 1,
+        "createdAt": 1739452200000,
+        "updatedAt": 1739452320000
       }
     ]
   }
 }
-
 ```
+
+**status 说明**
+
+| 值 | 含义 |
+| --- | --- |
+| 1 | 待确认 |
+| 2 | 待付款 |
+| 3 | 借用中 |
+| 4 | 待归还确认 |
+| 5 | 已完成 |
+| 6 | 已取消 |
+| 7 | 已拒绝 |
+| 8 | 争议中 |
 
 ### 10.4 同意借用订单接口
 

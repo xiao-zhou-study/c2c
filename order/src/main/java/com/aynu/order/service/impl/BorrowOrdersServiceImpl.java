@@ -101,7 +101,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                 log.error("不能购买属于自己的物品，itemId：{}", itemId);
                 throw new BadRequestException("不能购买属于自己的物品");
             }
-            if (ItemStatus.SOLD.getValue() != item.getStatus() || ItemStatus.OFF_SHELF.getValue() != item.getStatus()) {
+            if (ItemStatus.SOLD.getValue() == item.getStatus() || ItemStatus.OFF_SHELF.getValue() == item.getStatus()) {
                 log.error("物品不可购买，itemId：{}", itemId);
                 throw new BadRequestException("物品状态异常");
             }
@@ -248,7 +248,6 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                     borrowOrdersVO.setSellerId(record.getSellerId());
                     borrowOrdersVO.setTitle(record.getTitle());
                     borrowOrdersVO.setPrice(record.getPrice());
-                    borrowOrdersVO.setTotalAmount(record.getTotalAmount());
                     borrowOrdersVO.setStatus(record.getStatus());
                     borrowOrdersVO.setPurpose(record.getPurpose());
                     borrowOrdersVO.setConfirmTime(record.getConfirmTime());
@@ -396,7 +395,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         // 2. 构造支付宝请求模型
         AlipayTradePagePayModel model = new AlipayTradePagePayModel();
         model.setOutTradeNo(ordersPO.getId());
-        model.setTotalAmount(ordersPO.getTotalAmount()
+        model.setTotalAmount(ordersPO.getPrice()
                 .toString());
         model.setSubject("物品交易：" + ordersPO.getTitle());
         model.setProductCode("FAST_INSTANT_TRADE_PAY");
@@ -551,7 +550,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
                     // 安全校验：校验支付宝返回的金额与本地订单金额是否一致
                     double alipayAmount = Double.parseDouble(response.getTotalAmount());
-                    double localAmount = ordersPO.getTotalAmount()
+                    double localAmount = ordersPO.getPrice()
                             .doubleValue();
 
                     if (Math.abs(alipayAmount - localAmount) > 0.01) {
@@ -700,7 +699,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                     .toLocalDate();
 
             countPerDay.merge(date, 1L, Long::sum);
-            amountPerDay.merge(date, order.getTotalAmount(), BigDecimal::add);
+            amountPerDay.merge(date, order.getPrice(), BigDecimal::add);
         }
 
         LocalDate startDate = Instant.ofEpochMilli(startTime)
@@ -809,7 +808,6 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                     borrowOrdersVO.setSellerId(record.getSellerId());
                     borrowOrdersVO.setTitle(record.getTitle());
                     borrowOrdersVO.setPrice(record.getPrice());
-                    borrowOrdersVO.setTotalAmount(record.getTotalAmount());
                     borrowOrdersVO.setStatus(record.getStatus());
                     borrowOrdersVO.setPurpose(record.getPurpose());
                     borrowOrdersVO.setConfirmTime(record.getConfirmTime());

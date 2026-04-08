@@ -82,16 +82,10 @@ public class BorrowOrdersVO implements Serializable {
     private String title;
 
     /**
-     * 单价（元）
+     * 价格（元）
      */
-    @Schema(description = "单价（元）")
+    @Schema(description = "价格（元）")
     private BigDecimal price;
-
-    /**
-     * 订单总金额（元）
-     */
-    @Schema(description = "订单总金额（元）")
-    private BigDecimal totalAmount;
 
     /**
      * 1-待确认，2-待付款，3-交易中/服务中，4-待评价，5-已完成，6-已取消，7-已拒绝，8-争议中
