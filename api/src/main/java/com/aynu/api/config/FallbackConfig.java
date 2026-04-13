@@ -1,6 +1,7 @@
 package com.aynu.api.config;
 
 import com.aynu.api.client.item.fallback.ItemClientFallback;
+import com.aynu.api.client.review.fallback.ReviewClientFallback;
 import com.aynu.api.client.user.fallback.UserClientFallback;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,11 @@ public class FallbackConfig {
     @Bean
     public ItemClientFallback itemClientFallback() {
         return new ItemClientFallback();
+    }
+
+    @Bean
+    public ReviewClientFallback reviewClientFallback() {
+        return new ReviewClientFallback();
     }
 
 }

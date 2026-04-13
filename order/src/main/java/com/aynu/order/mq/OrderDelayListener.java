@@ -3,6 +3,7 @@ package com.aynu.order.mq;
 import com.aynu.common.constants.MqConstants;
 import com.aynu.order.domain.po.BorrowOrdersPO;
 import com.aynu.order.mapper.BorrowOrdersMapper;
+import com.aynu.order.service.BorrowOrdersService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import lombok.RequiredArgsConstructor;
@@ -18,15 +19,12 @@ public class OrderDelayListener {
 
     private final BorrowOrdersMapper orderMapper;
     private final StringRedisTemplate stringRedisTemplate;
+    private final BorrowOrdersService borrowOrdersService;
 
     /**
      * 延迟关单任务：24 小时后检查卖家是否确认订单
      */
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "user.order.queue", durable = "true"),
-            exchange = @Exchange(name = MqConstants.Exchange.ORDER_DELAY_EXCHANGE,
-                    type = "x-delayed-message",
-                    arguments = @Argument(name = "x-delayed-type", value = "topic")),
-            key = MqConstants.Key.ORDER_DELAY_KEY))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "user.order.queue", durable = "true"), exchange = @Exchange(name = MqConstants.Exchange.ORDER_DELAY_EXCHANGE, type = "x-delayed-message", arguments = @Argument(name = "x-delayed-type", value = "topic")), key = MqConstants.Key.ORDER_DELAY_KEY))
     public void handleOrderDelayMessage(String orderNo) {
         log.info("收到延迟关单任务，订单号：{}", orderNo);
 
@@ -51,13 +49,28 @@ public class OrderDelayListener {
     }
 
     /**
-     * 延迟确认收货任务：处理二手交易确认收货的后续逻辑
+     * 支付补偿任务：卖家同意订单 15 分钟后，主动查询支付宝确认支付状态
      */
-    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "user.order.return.queue", durable = "true"),
-            exchange = @Exchange(name = MqConstants.Exchange.ORDER_DELAY_EXCHANGE,
-                    type = "x-delayed-message",
-                    arguments = @Argument(name = "x-delayed-type", value = "topic")),
-            key = MqConstants.Key.ORDER_RETURN_DELAY_KEY))
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "user.order.pay.query.queue", durable = "true"), exchange = @Exchange(name = MqConstants.Exchange.ORDER_DELAY_EXCHANGE, type = "x-delayed-message", arguments = @Argument(name = "x-delayed-type", value = "topic")), key = MqConstants.Key.ORDER_PAY_DELAY_KEY))
+    public void handleOrderPayDelayMessage(String orderNo) {
+        log.info("收到支付补偿任务，订单号：{}", orderNo);
+
+        BorrowOrdersPO order = orderMapper.selectOne(new LambdaQueryWrapper<BorrowOrdersPO>().eq(BorrowOrdersPO::getId,
+                orderNo));
+
+        // 状态 2 表示待付款，说明可能未收到支付宝回调，主动查询确认
+        if (order != null && order.getStatus() == 2) {
+            log.info("订单 {} 仍为待付款状态，开始主动查询支付宝", orderNo);
+            borrowOrdersService.syncWithAlipay(orderNo);
+        } else {
+            log.info("订单 {} 状态已变更为 {}，无需补偿", orderNo, order != null ? order.getStatus() : "null");
+        }
+    }
+
+    /**
+     * 延迟确认收货任务：超时自动将订单置为待评价
+     */
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = "user.order.return.queue", durable = "true"), exchange = @Exchange(name = MqConstants.Exchange.ORDER_DELAY_EXCHANGE, type = "x-delayed-message", arguments = @Argument(name = "x-delayed-type", value = "topic")), key = MqConstants.Key.ORDER_RETURN_DELAY_KEY))
     public void handleOrderReturnDelayMessage(String orderNo) {
         log.info("收到延迟确认收货任务，订单号：{}", orderNo);
 
@@ -65,15 +78,13 @@ public class OrderDelayListener {
         BorrowOrdersPO ordersPO = wrapper.eq(BorrowOrdersPO::getId, orderNo)
                 .one();
 
-        // 状态 4 表示待评价/待确认收货，自动确认收货
+        // 状态 3 表示交易中，7天后用户未确认收货，自动置为待评价
         if (ordersPO != null && ordersPO.getStatus()
-                .equals(4)) {
-            ordersPO.setStatus(5);
+                .equals(3)) {
+            ordersPO.setStatus(4);
             ordersPO.setUpdatedAt(System.currentTimeMillis());
             orderMapper.updateById(ordersPO);
-            log.info("订单 {} 已通过延迟任务自动确认收货", orderNo);
+            log.info("订单 {} 已通过延迟任务自动置为待评价状态", orderNo);
         }
-
-        // TODO: 确认收货后，将款项打给卖家，创建通知等后续处理
     }
 }

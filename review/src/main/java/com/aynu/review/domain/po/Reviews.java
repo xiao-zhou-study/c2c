@@ -51,7 +51,7 @@ public class Reviews implements Serializable {
     /**
      * 关联订单ID（逻辑外键，关联borrow_orders表id）
      */
-    private Long orderId;
+    private String orderId;
 
     /**
      * 评分：1-5分（1星最低，5星最高）

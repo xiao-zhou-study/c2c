@@ -90,6 +90,8 @@ public interface MqConstants {
 
         String ORDER_DELAY_KEY = "delay.order.query";
 
+        String ORDER_PAY_DELAY_KEY = "delay.order.pay.query";
+
         String ORDER_RETURN_DELAY_KEY = "delay.order.return";
     }
 }

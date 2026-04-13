@@ -23,7 +23,7 @@ public class ReviewCreateDTO {
 
     @ApiModelProperty(value = "订单ID", required = true)
     @NotNull(message = "订单ID不能为空")
-    private Long orderId;
+    private String orderId;
 
     @ApiModelProperty(value = "评分（1-5分）", required = true)
     @NotNull(message = "评分不能为空")

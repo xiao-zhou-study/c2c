@@ -1,6 +1,5 @@
 package com.aynu.order.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
@@ -12,8 +11,10 @@ import com.alipay.api.request.AlipayTradeQueryRequest;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.aynu.api.client.item.ItemClient;
+import com.aynu.api.client.review.ReviewClient;
 import com.aynu.api.client.user.UserClient;
 import com.aynu.api.dto.item.ItemsVO;
+import com.aynu.api.dto.review.ReviewCreateDTO;
 import com.aynu.api.dto.user.UserDTO;
 import com.aynu.api.enums.item.ItemStatus;
 import com.aynu.api.enums.order.OrderStatus;
@@ -66,6 +67,7 @@ import static com.aynu.common.enums.NotifyTypeEnum.REVIEW_MESSAGE;
 public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, BorrowOrdersPO> implements BorrowOrdersService {
 
     private final ItemClient itemClient;
+    private final ReviewClient reviewClient;
     private final RabbitMqHelper rabbitMqHelper;
     private final UserClient userClient;
     private final AlipayClient alipayClient;
@@ -75,6 +77,36 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
     @Resource(name = "orderExecutor")
     private final Executor orderExecutor;
+
+    /**
+     * PO → VO 转换，自动填充物品和买卖双方用户信息
+     */
+    private BorrowOrdersVO toVO(BorrowOrdersPO record, ItemsVO item, UserDTO buyer, UserDTO seller) {
+        BorrowOrdersVO vo = new BorrowOrdersVO();
+        vo.setId(record.getId());
+        vo.setItemId(record.getItemId());
+        vo.setItemName(item.getTitle());
+        vo.setItemImageUrl(item.getImages());
+        vo.setBuyerId(record.getBuyerId());
+        vo.setBuyerName(buyer.getUsername());
+        vo.setBuyerAvatarUrl(buyer.getAvatarUrl());
+        vo.setSellerId(record.getSellerId());
+        vo.setSellerName(seller.getUsername());
+        vo.setSellerAvatarUrl(seller.getAvatarUrl());
+        vo.setTitle(record.getTitle());
+        vo.setPrice(record.getPrice());
+        vo.setStatus(record.getStatus());
+        vo.setPurpose(record.getPurpose());
+        vo.setConfirmTime(record.getConfirmTime());
+        vo.setPayTime(record.getPayTime());
+        vo.setPayTradeNo(record.getPayTradeNo());
+        vo.setBorrowTime(record.getBorrowTime());
+        vo.setCancelReason(record.getCancelReason());
+        vo.setVersion(record.getVersion());
+        vo.setCreatedAt(record.getCreatedAt());
+        vo.setUpdatedAt(record.getUpdatedAt());
+        return vo;
+    }
 
 
     @Override
@@ -104,6 +136,12 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             if (ItemStatus.SOLD.getValue() == item.getStatus() || ItemStatus.OFF_SHELF.getValue() == item.getStatus()) {
                 log.error("物品不可购买，itemId：{}", itemId);
                 throw new BadRequestException("物品状态异常");
+            }
+
+            Boolean exists = borrowOrdersMapper.existsPendingOrder(userId, itemId);
+            if (Boolean.TRUE.equals(exists)) {
+                log.warn("用户已存在待确认订单，userId: {}, itemId: {}", userId, itemId);
+                throw new BadRequestException("您已提交过该物品的购买申请，请耐心等待卖家处理");
             }
 
             BigDecimal price = item.getPrice();
@@ -184,17 +222,17 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
         List<UserDTO> userList;
         if (isOut) {
-            Set<Long> borrowerIds = records.stream()
+            Set<Long> buyerIds = records.stream()
                     .map(BorrowOrdersPO::getBuyerId)
                     .collect(Collectors.toSet());
 
-            userList = userClient.queryUserByIds(borrowerIds);
+            userList = userClient.queryUserByIds(buyerIds);
         } else {
-            Set<Long> lenderIds = records.stream()
+            Set<Long> sellerIds = records.stream()
                     .map(BorrowOrdersPO::getSellerId)
                     .collect(Collectors.toSet());
 
-            userList = userClient.queryUserByIds(lenderIds);
+            userList = userClient.queryUserByIds(sellerIds);
         }
 
         Map<Long, UserDTO> userMap = new HashMap<>();
@@ -222,44 +260,10 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         Map<Long, ItemsVO> finalItemMap = itemMap;
         List<BorrowOrdersVO> collect = records.stream()
                 .map(record -> {
-                    UserDTO user;
-                    if (isOut) {
-                        user = finalUserMap.getOrDefault(record.getBuyerId(), new UserDTO());
-                    } else {
-                        user = finalUserMap.getOrDefault(record.getSellerId(), new UserDTO());
-                    }
+                    UserDTO buyer = finalUserMap.getOrDefault(record.getBuyerId(), new UserDTO());
+                    UserDTO seller = finalUserMap.getOrDefault(record.getSellerId(), new UserDTO());
                     ItemsVO item = finalItemMap.getOrDefault(record.getItemId(), new ItemsVO());
-
-                    BorrowOrdersVO borrowOrdersVO = new BorrowOrdersVO();
-                    borrowOrdersVO.setId(record.getId());
-                    borrowOrdersVO.setItemId(record.getItemId());
-                    borrowOrdersVO.setItemName(item.getTitle());
-                    borrowOrdersVO.setItemImageUrl(item.getImages());
-                    borrowOrdersVO.setBuyerId(record.getBuyerId());
-
-                    if (isOut) {
-                        borrowOrdersVO.setBuyerName(user.getUsername());
-                        borrowOrdersVO.setBuyerAvatarUrl(user.getAvatarUrl());
-                    } else {
-                        borrowOrdersVO.setSellerName(user.getUsername());
-                        borrowOrdersVO.setSellerAvatarUrl(user.getAvatarUrl());
-                    }
-
-                    borrowOrdersVO.setSellerId(record.getSellerId());
-                    borrowOrdersVO.setTitle(record.getTitle());
-                    borrowOrdersVO.setPrice(record.getPrice());
-                    borrowOrdersVO.setStatus(record.getStatus());
-                    borrowOrdersVO.setPurpose(record.getPurpose());
-                    borrowOrdersVO.setConfirmTime(record.getConfirmTime());
-                    borrowOrdersVO.setPayTime(record.getPayTime());
-                    borrowOrdersVO.setPayTradeNo(record.getPayTradeNo());
-                    borrowOrdersVO.setBorrowTime(record.getBorrowTime());
-                    borrowOrdersVO.setCancelReason(record.getCancelReason());
-                    borrowOrdersVO.setVersion(record.getVersion());
-                    borrowOrdersVO.setCreatedAt(record.getCreatedAt());
-                    borrowOrdersVO.setUpdatedAt(record.getUpdatedAt());
-
-                    return borrowOrdersVO;
+                    return toVO(record, item, buyer, seller);
                 })
                 .collect(Collectors.toList());
 
@@ -328,6 +332,8 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
 
         rabbitMqHelper.send(ORDER_EXCHANGE, ORDER_NOTIFY_KEY, rejectMsgList);
 
+        // 发送支付补偿延迟消息：15分钟后查询支付宝确认支付状态
+        rabbitMqHelper.sendDelayMessage(ORDER_DELAY_EXCHANGE, ORDER_PAY_DELAY_KEY, id, Duration.ofMinutes(15));
     }
 
     @Override
@@ -375,6 +381,28 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         if (!updated) {
             throw new BadRequestException("订单已被他人处理或数据已过期，请刷新页面重试");
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void confirmReceipt(BorrowReturnDTO dto) {
+        String orderNo = dto.getId();
+        Integer version = dto.getVersion();
+
+        boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
+                .eq(BorrowOrdersPO::getStatus, 3)
+                .eq(BorrowOrdersPO::getVersion, version)
+                .set(BorrowOrdersPO::getStatus, 4)
+                .set(BorrowOrdersPO::getVersion, version + 1)
+                .set(BorrowOrdersPO::getUpdatedAt, System.currentTimeMillis())
+                .update();
+
+        if (!updated) {
+            throw new BadRequestException("订单不存在或状态异常，请刷新页面重试");
+        }
+
+        // 发送延迟确认收货消息：超时自动确认
+        rabbitMqHelper.sendDelayMessage(ORDER_DELAY_EXCHANGE, ORDER_RETURN_DELAY_KEY, orderNo, Duration.ofDays(7));
     }
 
     @Override
@@ -476,6 +504,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                     .eq(BorrowOrdersPO::getStatus, 2)
                     .set(BorrowOrdersPO::getStatus, 3)
                     .set(BorrowOrdersPO::getPayTradeNo, tradeNo)
+                    .set(BorrowOrdersPO::getPayTime, System.currentTimeMillis())
                     .update();
 
             if (updateResult) {
@@ -565,6 +594,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                     boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
                             .eq(BorrowOrdersPO::getStatus, 2)
                             .set(BorrowOrdersPO::getStatus, 3)
+                            .set(BorrowOrdersPO::getPayTime, System.currentTimeMillis())
                             .update();
 
                     if (updated) {
@@ -596,23 +626,13 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         ItemsVO itemVO = itemClient.getById(itemId);
 
 
-        Long borrowerId = ordersPO.getBuyerId();
+        Long buyerId = ordersPO.getBuyerId();
+        UserDTO buyerUser = userClient.queryUserById(buyerId);
 
-        UserDTO borrowUser = userClient.queryUserById(borrowerId);
+        Long sellerId = ordersPO.getSellerId();
+        UserDTO sellerUser = userClient.queryUserById(sellerId);
 
-        Long lenderId = ordersPO.getSellerId();
-
-        UserDTO lenderUser = userClient.queryUserById(lenderId);
-
-        BorrowOrdersVO borrowOrdersVO = BeanUtil.toBean(ordersPO, BorrowOrdersVO.class);
-        borrowOrdersVO.setItemImageUrl(itemVO.getImages());
-        borrowOrdersVO.setItemName(itemVO.getTitle());
-        borrowOrdersVO.setBuyerName(borrowUser.getUsername());
-        borrowOrdersVO.setBuyerAvatarUrl(borrowUser.getAvatarUrl());
-        borrowOrdersVO.setSellerName(lenderUser.getUsername());
-        borrowOrdersVO.setSellerAvatarUrl(lenderUser.getAvatarUrl());
-
-        return borrowOrdersVO;
+        return toVO(ordersPO, itemVO, buyerUser, sellerUser);
     }
 
     @Override
@@ -681,7 +701,7 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         long endTime = System.currentTimeMillis();
         long startTime = endTime - (days * 24 * 60 * 60 * 1000L);
 
-        List<BorrowOrdersPO> borrowOrdersPOS = lambdaQuery().in(BorrowOrdersPO::getStatus, 2, 3, 4, 5)
+        List<BorrowOrdersPO> borrowOrdersPOS = lambdaQuery().in(BorrowOrdersPO::getStatus, 3, 4, 5)
                 .ge(BorrowOrdersPO::getCreatedAt, startTime)
                 .le(BorrowOrdersPO::getCreatedAt, endTime)
                 .list();
@@ -789,41 +809,52 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         Map<Long, ItemsVO> finalItemMap = itemMap;
         List<BorrowOrdersVO> collect = records.stream()
                 .map(record -> {
-                    UserDTO userBorrower;
-                    UserDTO userLender;
-                    userBorrower = finalUserMap.getOrDefault(record.getBuyerId(), new UserDTO());
-                    userLender = finalUserMap.getOrDefault(record.getSellerId(), new UserDTO());
+                    UserDTO buyer = finalUserMap.getOrDefault(record.getBuyerId(), new UserDTO());
+                    UserDTO seller = finalUserMap.getOrDefault(record.getSellerId(), new UserDTO());
                     ItemsVO item = finalItemMap.getOrDefault(record.getItemId(), new ItemsVO());
-
-                    BorrowOrdersVO borrowOrdersVO = new BorrowOrdersVO();
-                    borrowOrdersVO.setId(record.getId());
-                    borrowOrdersVO.setItemId(record.getItemId());
-                    borrowOrdersVO.setItemName(item.getTitle());
-                    borrowOrdersVO.setItemImageUrl(item.getImages());
-                    borrowOrdersVO.setBuyerId(record.getBuyerId());
-                    borrowOrdersVO.setBuyerName(userBorrower.getUsername());
-                    borrowOrdersVO.setBuyerAvatarUrl(userBorrower.getAvatarUrl());
-                    borrowOrdersVO.setSellerName(userLender.getUsername());
-                    borrowOrdersVO.setSellerAvatarUrl(userLender.getAvatarUrl());
-                    borrowOrdersVO.setSellerId(record.getSellerId());
-                    borrowOrdersVO.setTitle(record.getTitle());
-                    borrowOrdersVO.setPrice(record.getPrice());
-                    borrowOrdersVO.setStatus(record.getStatus());
-                    borrowOrdersVO.setPurpose(record.getPurpose());
-                    borrowOrdersVO.setConfirmTime(record.getConfirmTime());
-                    borrowOrdersVO.setPayTime(record.getPayTime());
-                    borrowOrdersVO.setPayTradeNo(record.getPayTradeNo());
-                    borrowOrdersVO.setBorrowTime(record.getBorrowTime());
-                    borrowOrdersVO.setCancelReason(record.getCancelReason());
-                    borrowOrdersVO.setVersion(record.getVersion());
-                    borrowOrdersVO.setCreatedAt(record.getCreatedAt());
-                    borrowOrdersVO.setUpdatedAt(record.getUpdatedAt());
-
-                    return borrowOrdersVO;
+                    return toVO(record, item, buyer, seller);
                 })
                 .collect(Collectors.toList());
 
         return PageDTO.of(pageResult, collect);
+    }
+
+    @Override
+    public Long reviewOrder(OrderReviewDTO dto) {
+        String orderNo = dto.getId();
+
+        BorrowOrdersPO order = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
+                .one();
+        if (order == null) {
+            throw new BadRequestException("订单不存在");
+        }
+
+        // 只有待评价或已完成的订单可以评价
+        if (order.getStatus() != 4 && order.getStatus() != 5) {
+            throw new BadRequestException("当前订单状态不可评价");
+        }
+
+        ReviewCreateDTO reviewDTO = ReviewCreateDTO.builder()
+                .itemId(order.getItemId())
+                .targetUserId(order.getSellerId())
+                .orderId(orderNo)
+                .rating(dto.getRating())
+                .content(dto.getContent())
+                .images(dto.getImages())
+                .isAnonymous(dto.getIsAnonymous())
+                .build();
+
+        Long reviewId = reviewClient.createReview(reviewDTO);
+
+        // 评价成功后将订单状态更新为已完成
+        if (order.getStatus() == 4 && reviewId != null) {
+            lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
+                    .set(BorrowOrdersPO::getStatus, 5)
+                    .set(BorrowOrdersPO::getUpdatedAt, System.currentTimeMillis())
+                    .update();
+        }
+
+        return reviewId;
     }
 
 }

@@ -65,7 +65,8 @@ public class ReviewsController {
 
     @ApiOperation("更新评价")
     @PutMapping("/reviews/{reviewId}")
-    public ReviewVO updateReview(@PathVariable("reviewId") Long reviewId, @Valid @RequestBody ReviewUpdateDTO updateDTO) {
+    public ReviewVO updateReview(@PathVariable("reviewId") Long reviewId,
+                                 @Valid @RequestBody ReviewUpdateDTO updateDTO) {
         return reviewsService.updateReview(reviewId, updateDTO);
     }
 
@@ -77,13 +78,14 @@ public class ReviewsController {
 
     @ApiOperation("检查是否可以评价")
     @GetMapping("/can-review/{orderId}")
-    public Map<String, Object> canReview(@PathVariable("orderId") Long orderId) {
+    public Map<String, Object> canReview(@PathVariable("orderId") String orderId) {
         return reviewsService.canReview(orderId);
     }
 
     @ApiOperation("举报评价")
     @PostMapping("/reviews/{reviewId}/report")
-    public Boolean reportReview(@PathVariable("reviewId") Long reviewId, @Valid @RequestBody ReviewReportDTO reportDTO) {
+    public Boolean reportReview(@PathVariable("reviewId") Long reviewId,
+                                @Valid @RequestBody ReviewReportDTO reportDTO) {
         return reviewsService.reportReview(reviewId, reportDTO);
     }
 

@@ -37,6 +37,6 @@ xy:
   auth:
     resource:
       enable: true
-      excludeLoginPaths: [ ]
+      excludeLoginPaths: [ "/ws/**", "/chat/**" ]
   jdbc:
     database: xy_notification

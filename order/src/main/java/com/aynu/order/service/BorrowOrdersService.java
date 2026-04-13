@@ -31,6 +31,8 @@ public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
 
     void cancelBorrowOrders(BorrowCancelDTO dto);
 
+    void confirmReceipt(BorrowReturnDTO dto);
+
     String payBorrowOrders(BorrowPayDTO dto);
 
     String handleNotify(Map<String, String> params);
@@ -48,4 +50,6 @@ public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
     PageDTO<BorrowOrdersVO> getBorrowOrdersList(PageQuery pageQuery,
                                              String keyword,
                                              Integer status);
+
+    Long reviewOrder(OrderReviewDTO dto);
 }

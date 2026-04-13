@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean:*)",
+      "Bash(mv /tmp/ws_backup/* notification/src/main/java/com/aynu/notification/websocket/)",
+      "Bash(mv /tmp/config_backup/* notification/src/main/java/com/aynu/notification/config/)",
+      "Bash(mv /tmp/ChatController.java notification/src/main/java/com/aynu/notification/controller/)",
+      "Bash(mv notification/src/main/java/com/aynu/notification/websocket /tmp/ws_backup2)",
+      "Bash(mv notification/src/main/java/com/aynu/notification/config /tmp/config_backup2)",
+      "Bash(mv notification/src/main/java/com/aynu/notification/controller/ChatController.java /tmp/ChatController2.java)",
+      "Bash(mvn compile:*)",
+      "Bash(mv /tmp/ws_backup2 notification/src/main/java/com/aynu/notification/websocket)",
+      "Bash(mv /tmp/config_backup2 notification/src/main/java/com/aynu/notification/config)",
+      "Bash(mv /tmp/ChatController2.java notification/src/main/java/com/aynu/notification/controller/)",
+      "Bash(ls:*)"
+    ]
+  }
+}

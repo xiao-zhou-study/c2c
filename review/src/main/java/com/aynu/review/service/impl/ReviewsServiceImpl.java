@@ -62,7 +62,8 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
 
         // 将图片列表转为JSON字符串
         String imagesJson = null;
-        if (createDTO.getImages() != null && !createDTO.getImages().isEmpty()) {
+        if (createDTO.getImages() != null && !createDTO.getImages()
+                .isEmpty()) {
             imagesJson = JSONUtil.toJsonStr(createDTO.getImages());
         }
 
@@ -123,6 +124,7 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
         Long currentUserId = UserContext.getUser();
 
         Page<Reviews> page = lambdaQuery().eq(Reviews::getReviewerId, currentUserId)
+                .eq(Reviews::getStatus, 1)
                 .orderByDesc(Reviews::getCreatedAt)
                 .page(query.toMpPage());
 
@@ -146,7 +148,8 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
         }
 
         // 只能修改自己的评价
-        if (!review.getReviewerId().equals(currentUserId)) {
+        if (!review.getReviewerId()
+                .equals(currentUserId)) {
             throw new BadRequestException("只能修改自己的评价");
         }
 
@@ -180,7 +183,8 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
         }
 
         // 只能删除自己的评价
-        if (!review.getReviewerId().equals(currentUserId)) {
+        if (!review.getReviewerId()
+                .equals(currentUserId)) {
             throw new BadRequestException("只能删除自己的评价");
         }
 
@@ -194,7 +198,7 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
     }
 
     @Override
-    public Map<String, Object> canReview(Long orderId) {
+    public Map<String, Object> canReview(String orderId) {
         Long currentUserId = UserContext.getUser();
 
         // 检查是否已经评价过
@@ -226,7 +230,9 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
 
     @Override
     public Map<String, Object> getReviewStats(Long userId) {
-        ReviewStats stats = reviewStatsService.lambdaQuery().eq(ReviewStats::getUserId, userId).one();
+        ReviewStats stats = reviewStatsService.lambdaQuery()
+                .eq(ReviewStats::getUserId, userId)
+                .one();
 
         if (stats == null) {
             return Map.of("totalReviews",
@@ -275,10 +281,13 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
 
         // 获取用户信息
         List<UserDTO> users = userClient.queryUserByIds(userIds);
-        Map<Long, UserDTO> userMap = users.stream().collect(Collectors.toMap(UserDTO::getId, Function.identity()));
+        Map<Long, UserDTO> userMap = users.stream()
+                .collect(Collectors.toMap(UserDTO::getId, Function.identity()));
 
         // 转换为VO
-        return reviews.stream().map(review -> convertToVO(review, userMap)).collect(Collectors.toList());
+        return reviews.stream()
+                .map(review -> convertToVO(review, userMap))
+                .collect(Collectors.toList());
     }
 
     private ReviewVO convertToVO(Reviews review) {
@@ -287,7 +296,8 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
         userIds.add(review.getTargetUserId());
 
         List<UserDTO> users = userClient.queryUserByIds(userIds);
-        Map<Long, UserDTO> userMap = users.stream().collect(Collectors.toMap(UserDTO::getId, Function.identity()));
+        Map<Long, UserDTO> userMap = users.stream()
+                .collect(Collectors.toMap(UserDTO::getId, Function.identity()));
 
         return convertToVO(review, userMap);
     }
@@ -317,7 +327,9 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
     }
 
     private void updateReviewStats(Long userId, Integer rating, boolean isAdd) {
-        ReviewStats stats = reviewStatsService.lambdaQuery().eq(ReviewStats::getUserId, userId).one();
+        ReviewStats stats = reviewStatsService.lambdaQuery()
+                .eq(ReviewStats::getUserId, userId)
+                .one();
 
         long now = System.currentTimeMillis();
 

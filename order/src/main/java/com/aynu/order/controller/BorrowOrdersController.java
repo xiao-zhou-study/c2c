@@ -7,6 +7,8 @@ import com.aynu.order.domain.dto.BorrowAgreeDTO;
 import com.aynu.order.domain.dto.BorrowCancelDTO;
 import com.aynu.order.domain.dto.BorrowPayDTO;
 import com.aynu.order.domain.dto.BorrowRejectDTO;
+import com.aynu.order.domain.dto.BorrowReturnDTO;
+import com.aynu.order.domain.dto.OrderReviewDTO;
 import com.aynu.order.domain.vo.BorrowOrdersAmountVO;
 import com.aynu.order.domain.vo.BorrowOrdersPieVO;
 import com.aynu.order.domain.vo.BorrowOrdersTrendVO;
@@ -117,6 +119,26 @@ public class BorrowOrdersController {
     @PutMapping("/cancel")
     public void cancelBorrowOrders(@RequestBody BorrowCancelDTO dto) {
         borrowOrdersService.cancelBorrowOrders(dto);
+    }
+
+    /**
+     * 确认收货
+     *
+     * @param dto 订单信息
+     */
+    @PutMapping("/confirm")
+    public void confirmReceipt(@RequestBody BorrowReturnDTO dto) {
+        borrowOrdersService.confirmReceipt(dto);
+    }
+
+    /**
+     * 评价订单
+     *
+     * @param dto 评价信息
+     */
+    @PostMapping("/review")
+    public Long reviewOrder(@RequestBody OrderReviewDTO dto) {
+        return borrowOrdersService.reviewOrder(dto);
     }
 
     /**

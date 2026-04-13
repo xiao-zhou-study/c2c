@@ -70,7 +70,7 @@ public interface IReviewsService extends IService<Reviews> {
      * @param orderId 订单ID
      * @return 是否可以评价
      */
-    Map<String, Object> canReview(Long orderId);
+    Map<String, Object> canReview(String orderId);
 
     /**
      * 举报评价

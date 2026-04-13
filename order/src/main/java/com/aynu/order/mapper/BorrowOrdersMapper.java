@@ -17,4 +17,6 @@ public interface BorrowOrdersMapper extends BaseMapper<BorrowOrdersPO> {
 
     List<BorrowOrdersCountDTO> getBorrowOrdersCount();
 
+    Boolean existsPendingOrder(Long buyerId, Long itemId);
+
 }

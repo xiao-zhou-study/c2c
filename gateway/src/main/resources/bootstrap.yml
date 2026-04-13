@@ -76,6 +76,11 @@ spring:
             - Path=/ns/**
           filters:
             - PreserveHostHeader
+        # 通知服务 WebSocket 路由
+        - id: notification-ws
+          uri: lb:ws://notification-service
+          predicates:
+            - Path=/ws/**
         - id: campus
           uri: lb://campus-service
           predicates:
