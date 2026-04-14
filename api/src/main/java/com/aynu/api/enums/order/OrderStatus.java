@@ -14,8 +14,7 @@ public enum OrderStatus implements BaseEnum {
     PENDING_RETURN_CONFIRM(4, "pending_return_confirm", "待评价"),
     COMPLETED(5, "completed", "已完成"),
     CANCELLED(6, "cancelled", "已取消"),
-    REJECTED(7, "rejected", "已拒绝"),
-    IN_DISPUTE(8, "in_dispute", "争议中");
+    REJECTED(7, "rejected", "已拒绝");
 
     @EnumValue
     final int value;

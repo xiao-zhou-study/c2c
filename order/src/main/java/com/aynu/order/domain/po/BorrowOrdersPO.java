@@ -66,9 +66,9 @@ public class BorrowOrdersPO implements Serializable {
     private BigDecimal price;
 
     /**
-     * 1-待确认，2-待付款，3-交易中/服务中，4-待评价，5-已完成，6-已取消，7-已拒绝，8-争议中
+     * 1-待确认，2-待付款，3-交易中/服务中，4-待评价，5-已完成，6-已取消，7-已拒绝
      */
-    @Schema(description = "1-待确认，2-待付款，3-交易中/服务中，4-待评价，5-已完成，6-已取消，7-已拒绝，8-争议中")
+    @Schema(description = "1-待确认，2-待付款，3-交易中/服务中，4-待评价，5-已完成，6-已取消，7-已拒绝")
     private Integer status;
 
     /**

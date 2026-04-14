@@ -2248,7 +2248,7 @@
 | Authorization | Header | String | 是 | - | 用户登录访问令牌 |
 | pageNo | Query | Integer | 否 | 1 | 当前页码 |
 | pageSize | Query | Integer | 否 | 20 | 每页展示条数 |
-| status | Query | Integer | 否 | - | 订单状态 (1-待确认, 2-待付款, 3-借用中, 4-待归还确认, 5-已完成, 6-已取消, 7-已拒绝, 8-争议中) |
+| status | Query | Integer | 否 | - | 订单状态 (1-待确认, 2-待付款, 3-交易中/服务中, 4-待评价, 5-已完成, 6-已取消, 7-已拒绝) |
 | keyword | Query | String | 否 | - | 搜索关键词 (模糊匹配物品名或买家姓名) |
 | startTime | Query | Long | 否 | - | 筛选范围：订单创建开始时间戳 |
 | endTime | Query | Long | 否 | - | 筛选范围：订单创建结束时间戳 |
@@ -2365,7 +2365,6 @@
 | 5 | 已完成 |
 | 6 | 已取消 |
 | 7 | 已拒绝 |
-| 8 | 争议中 |
 
 ### 10.4 同意借用订单接口
 
