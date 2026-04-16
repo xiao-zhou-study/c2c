@@ -41,6 +41,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `campus` | 8089 | Campus community (topics, categories, comments, announcements) |
 | `ai` | — | AI chat service (LangChain4j, SSE streaming, Spring Boot 3.4.1 standalone) |
 
+### Gateway Routes
+
+Gateway routes by URL prefix with `StripPrefix=1` filter:
+
+| Prefix | Service | Description |
+|--------|---------|-------------|
+| `/as/` | auth-service | Authentication |
+| `/us/` | user-service | User management |
+| `/is/` | item-service | Item/category management |
+| `/os/` | order-service | Order management |
+| `/ss/` | storage-service | File upload |
+| `/rs/` | review-service | Reviews/ratings |
+| `/ns/` | notification-service | Notifications |
+| `/ws/` | notification-service | WebSocket |
+| `/cs/` | campus-service | Campus community |
+| `/ai/` | ai-service | AI chat (SSE) |
+
+Configuration: `gateway/src/main/resources/bootstrap.yml`
+
 ### Package Convention
 
 All packages follow `com.aynu.<module>.<layer>`:
@@ -55,10 +74,10 @@ Cross-service Feign clients are in the `api` module: `com.aynu.api.client.*`
 
 ### Middleware Stack
 
-- **Registry/Config**: Nacos
+- **Registry/Config**: Nacos (shared configs: `shared-spring.yaml`, `shared-redis.yaml`, `shared-mybatis.yaml`, `shared-feign.yaml`, `shared-mq.yaml`)
 - **ORM**: MyBatis-Plus 3.5.5
 - **Cache**: Redis + Redisson 3.13.6 (distributed locking)
-- **RPC**: OpenFeign with Sentinel circuit breaker
+- **RPC**: OpenFeign with Sentinel circuit breaker (FallbackFactory pattern)
 - **Message Queue**: RabbitMQ
 - **Distributed Transactions**: Seata 1.5.1
 - **Search**: Elasticsearch 7.12.1
@@ -118,3 +137,54 @@ Each service exposes Knife4j Swagger UI at `http://<host>:<port>/doc.html`. Full
 - **Authentication** flows through the gateway (JWT validation via auth-gateway-sdk), with per-service validation via auth-resource-sdk
 - The **AI module** uses Spring Boot 3.4.1 with WebFlux (reactive), unlike the rest of the system which uses Spring Boot 2.7.2 with servlet stack
 - **Database migrations**: Check each module's `src/main/resources/mapper/` directory for MyBatis XML mapper files
+
+## Key Patterns
+
+### API Response Wrapper
+
+All API responses use `R<T>` from common module:
+```java
+R.ok(data)  // success
+R.error(code, msg)  // failure
+```
+
+### Exception Handling
+
+Use `CommonException` subclasses from `com.aynu.common.exceptions`:
+- `BadRequestException` (400) - Invalid input
+- `UnauthorizedException` (401) - Auth failure
+- `ForbiddenException` (403) - Permission denied
+- `DbException` - Database errors
+
+Throw via `AssertUtils.isNotEmpty(coll, "message")` for common validations.
+
+### User Context
+
+Current user available via `UserContext.getUser()` (ThreadLocal-based). Inter-service calls propagate user context via `FeignRelayUserInterceptor`.
+
+### Feign Clients
+
+Define in `com.aynu.api.client.{service}` package:
+```java
+@FeignClient(value = "user-service", fallbackFactory = UserClientFallback.class)
+public interface UserClient { ... }
+```
+
+Fallbacks use `FallbackFactory<T>` pattern in `client.{service}.fallback`.
+
+### Distributed Lock
+
+Use Redisson via `RLockClient` from common module:
+```java
+lockClient.tryLock("lock-key", waitTime, leaseTime, () -> {
+    // locked operation
+});
+```
+
+### AI Module Patterns
+
+The AI module uses LangChain4j with SSE streaming:
+- AI services defined as interfaces with `@AiService` annotation
+- `@SystemMessage(fromResource = "system.md")` for system prompts
+- Chat memory stored in Redis (1-day TTL, 20-message window)
+- SSE response format: `data: {"content":"..."}\n\n`
