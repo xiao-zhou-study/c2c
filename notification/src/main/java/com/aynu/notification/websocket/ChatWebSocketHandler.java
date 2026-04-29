@@ -148,18 +148,15 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
-     * 分页获取两个用户之间的聊天记录（升序：旧消息在前，新消息在后）
+     * 获取两个用户之间的全部聊天记录（升序：旧消息在前，新消息在后）
      */
-    public List<String> getChatHistory(Long userId1, Long userId2, int page, int size) {
+    public List<String> getChatHistory(Long userId1, Long userId2) {
         long smallId = Math.min(userId1, userId2);
         long largeId = Math.max(userId1, userId2);
         String key = MESSAGES_KEY_PREFIX + smallId + ":" + largeId;
 
         // Redis List 是按时间顺序 append，旧消息在前，新消息在后
-        long start = (long) page * size;
-        long end = start + size - 1;
-
-        List<String> list = stringRedisTemplate.opsForList().range(key, start, end);
+        List<String> list = stringRedisTemplate.opsForList().range(key, 0, -1);
         return list != null ? list : Collections.emptyList();
     }
 

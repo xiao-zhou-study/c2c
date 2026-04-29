@@ -21,4 +21,4 @@ logging:
     com.aynu: debug
 
 alipay:
-  returnUrl: http://localhost:3000/pay/success
+  returnUrl: http://localhost:3000/profile?tab=bought

@@ -15,4 +15,4 @@ logging:
 
 
 alipay:
-  returnUrl: https://www.xzxfle.top/pay/success
+  returnUrl: https://www.xzxfle.top/profile?tab=bought

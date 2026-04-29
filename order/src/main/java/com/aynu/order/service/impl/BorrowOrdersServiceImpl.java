@@ -5,7 +5,6 @@ import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.domain.AlipayTradePagePayModel;
 import com.alipay.api.domain.AlipayTradeQueryModel;
-import com.alipay.api.internal.util.AlipaySignature;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.api.request.AlipayTradeQueryRequest;
 import com.alipay.api.response.AlipayTradePagePayResponse;
@@ -54,6 +53,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.aynu.common.constants.MqConstants.Exchange.*;
@@ -433,16 +433,12 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
                 .plusMinutes(15)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
-        // 4. 构造请求并设置回调地址
+        // 4. 构造请求并设置同步跳转地址（不再设置异步回调地址）
         AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
         request.setBizModel(model);
 
-        if (StringUtils.hasText(alipayProperties.getNotifyUrl())) {
-            //异步接收地址，公网可访问
-            request.setNotifyUrl(alipayProperties.getNotifyUrl());
-        }
         if (StringUtils.hasText(alipayProperties.getReturnUrl())) {
-            //同步跳转地址
+            // 同步跳转地址
             request.setReturnUrl(alipayProperties.getReturnUrl());
         }
 
@@ -451,6 +447,8 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
             AlipayTradePagePayResponse response = alipayClient.pageExecute(request, "POST");
             if (response.isSuccess()) {
                 log.info("生成支付表单成功，订单号：{}", orderNo);
+                // 5. 启动异步轮询查询支付结果
+                startPaymentPolling(orderNo);
                 return response.getBody();
             } else {
                 throw new BadRequestException("支付宝网关响应失败：" + response.getSubMsg());
@@ -461,83 +459,129 @@ public class BorrowOrdersServiceImpl extends ServiceImpl<BorrowOrdersMapper, Bor
         }
     }
 
-    @Override
-    public String handleNotify(Map<String, String> params) {
-        // 1. 记录日志 (直接使用传入的 params)
-        log.info("【支付宝回调】开始处理。收到参数个数: {}", params.size());
+    /**
+     * 启动异步轮询查询支付宝支付结果
+     */
+    private void startPaymentPolling(String orderNo) {
+        CompletableFuture.runAsync(() -> {
+            int maxRetries = 20;
+            int intervalSeconds = 5;
 
-        // 调试专用：打印出接收到的签名
-        log.debug("【支付宝回调】解析后的参数 Map: {}, sign: {}", params, params.get("sign"));
+            for (int i = 0; i < maxRetries; i++) {
+                try {
+                    TimeUnit.SECONDS.sleep(intervalSeconds);
+                } catch (InterruptedException e) {
+                    Thread.currentThread()
+                            .interrupt();
+                    log.warn("【支付轮询】订单 {} 轮询被中断", orderNo);
+                    return;
+                }
 
-        if (params.isEmpty()) {
-            log.error("【支付宝回调】异常：参数 Map 为空，请检查网关是否截断了 POST Body");
-            return "fail";
-        }
+                log.info("【支付轮询】第 {} 次查询订单 {} 支付状态", i + 1, orderNo);
 
-        // 2. 验签 (必须通过 SDK 验签)
-        boolean signVerified;
-        try {
-            signVerified = AlipaySignature.rsaCheckV1(params,
-                    alipayProperties.getAlipayPublicKey(),
-                    alipayProperties.getCharset(),
-                    alipayProperties.getSignType());
-        } catch (AlipayApiException e) {
-            log.error("【支付宝回调】验签系统异常", e);
-            return "fail";
-        }
+                // 先检查本地订单状态，如果已不是待付款则说明已被处理
+                BorrowOrdersPO currentOrder = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
+                        .one();
+                if (currentOrder == null || currentOrder.getStatus() != 2) {
+                    log.info("【支付轮询】订单 {} 状态已变为 {}，停止轮询",
+                            orderNo,
+                            currentOrder != null ? currentOrder.getStatus() : "null");
+                    return;
+                }
 
-        if (!signVerified) {
-            log.warn("【支付宝回调】验签失败！参数: {}", params);
-            return "fail";
-        }
+                // 查询支付宝
+                AlipayTradeQueryModel model = new AlipayTradeQueryModel();
+                model.setOutTradeNo(orderNo);
 
-        // 3. 验签通过，处理业务逻辑
-        String tradeStatus = params.get("trade_status");
-        String orderNo = params.get("out_trade_no");
-        String tradeNo = params.get("trade_no");
+                AlipayTradeQueryRequest request = new AlipayTradeQueryRequest();
+                request.setBizModel(model);
 
-        log.info("【支付宝回调】验签通过。订单号: {}, 交易状态: {}, 支付宝交易号: {}", orderNo, tradeStatus, tradeNo);
+                try {
+                    AlipayTradeQueryResponse response = alipayClient.execute(request);
+                    if (!response.isSuccess()) {
+                        if ("ACQ.TRADE_NOT_EXIST".equals(response.getSubCode())) {
+                            log.info("【支付轮询】订单 {} 尚未在支付宝创建", orderNo);
+                        } else {
+                            log.warn("【支付轮询】查询接口返回错误：{}", response.getSubMsg());
+                        }
+                        continue;
+                    }
 
-        if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
-            // 4. 修改订单状态 (status=2 确保幂等)，同时保存支付宝交易号
-            boolean updateResult = lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
-                    .eq(BorrowOrdersPO::getStatus, 2)
-                    .set(BorrowOrdersPO::getStatus, 3)
-                    .set(BorrowOrdersPO::getPayTradeNo, tradeNo)
-                    .set(BorrowOrdersPO::getPayTime, System.currentTimeMillis())
-                    .update();
+                    String tradeStatus = response.getTradeStatus();
+                    log.info("【支付轮询】订单 {} 支付宝状态：{}", orderNo, tradeStatus);
 
-            if (updateResult) {
-                log.info("【支付宝回调】订单 {} 状态更新成功 -> 已支付", orderNo);
-            } else {
-                log.info("【支付宝回调】订单 {} 状态已在之前更新过，跳过本次处理", orderNo);
+                    if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
+                        // 金额校验
+                        double alipayAmount = Double.parseDouble(response.getTotalAmount());
+                        double localAmount = currentOrder.getPrice()
+                                .doubleValue();
+
+                        if (Math.abs(alipayAmount - localAmount) > 0.01) {
+                            log.error("【支付轮询】严重警告：订单 {} 金额不匹配！支付宝：{}，本地：{}",
+                                    orderNo,
+                                    alipayAmount,
+                                    localAmount);
+                            return;
+                        }
+
+                        // 更新订单状态
+                        boolean updated = lambdaUpdate().eq(BorrowOrdersPO::getId, orderNo)
+                                .eq(BorrowOrdersPO::getStatus, 2)
+                                .set(BorrowOrdersPO::getStatus, 3)
+                                .set(BorrowOrdersPO::getPayTradeNo, response.getTradeNo())
+                                .set(BorrowOrdersPO::getPayTime, System.currentTimeMillis())
+                                .update();
+
+                        if (updated) {
+                            log.info("【支付轮询】订单 {} 支付成功，状态已更新", orderNo);
+                            // 异步更新买家和卖家统计信息
+                            CompletableFuture.runAsync(() -> {
+                                        BorrowOrdersPO order = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
+                                                .one();
+                                        List<UpdateStatsDTO> updateStatsDTOs = Arrays.asList(UpdateStatsDTO.builder()
+                                                        .userId(order.getBuyerId())
+                                                        .type(2)
+                                                        .isAdd(true)
+                                                        .build(),
+                                                UpdateStatsDTO.builder()
+                                                        .userId(order.getSellerId())
+                                                        .type(3)
+                                                        .isAdd(true)
+                                                        .build());
+                                        rabbitMqHelper.send(USER_EXCHANGE, USER_UPDATE_ORDER_STATS, updateStatsDTOs);
+                                    }, orderExecutor)
+                                    .exceptionally(e -> {
+                                        log.error("【支付轮询】更新用户统计信息时出错", e);
+                                        return null;
+                                    });
+                        }
+                        return;
+                    } else if ("TRADE_CLOSED".equals(tradeStatus)) {
+                        log.info("【支付轮询】订单 {} 在支付宝端已关闭，停止轮询", orderNo);
+                        return;
+                    }
+                } catch (AlipayApiException e) {
+                    log.error("【支付轮询】调用支付宝查询接口异常，订单：{}", orderNo, e);
+                }
             }
 
-            // 异步更新买家以及卖家的统计信息（已卖出数量和购买中数量）
-            CompletableFuture.runAsync(() -> {
-                        BorrowOrdersPO ordersPO = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
-                                .one();
+            log.info("【支付轮询】订单 {} 轮询次数已达上限，停止轮询，交由定时任务补偿", orderNo);
+        }, orderExecutor);
+    }
 
-                        List<UpdateStatsDTO> updateStatsDTOs = Arrays.asList(UpdateStatsDTO.builder()
-                                        .userId(ordersPO.getBuyerId())
-                                        .type(2)
-                                        .isAdd(true)
-                                        .build(),
-                                UpdateStatsDTO.builder()
-                                        .userId(ordersPO.getSellerId())
-                                        .type(3)
-                                        .isAdd(true)
-                                        .build());
-                        rabbitMqHelper.send(USER_EXCHANGE, USER_UPDATE_ORDER_STATS, updateStatsDTOs);
-                    }, orderExecutor)
-                    .exceptionally(e -> {
-                        log.error("【支付宝回调】更新用户统计信息时出错", e);
-                        return null;
-                    });
+    @Override
+    public Integer getPayStatus(String orderNo) {
+        BorrowOrdersPO order = lambdaQuery().eq(BorrowOrdersPO::getId, orderNo)
+                .one();
+        if (order == null) {
+            throw new BadRequestException("订单不存在");
         }
-
-        // 5. 返回 success 给支付宝
-        return "success";
+        Long currentUserId = UserContext.getUser();
+        if (!order.getBuyerId()
+                .equals(currentUserId)) {
+            throw new BadRequestException("无权查看该订单");
+        }
+        return order.getStatus();
     }
 
     @Override

@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "订单表接口")
 @RestController
@@ -150,15 +149,14 @@ public class BorrowOrdersController {
     }
 
     /**
-     * 回调接口
+     * 查询订单支付状态（前端轮询用）
      *
-     * @param params 请求
-     * @return 状态
+     * @param orderNo 订单编号
+     * @return 订单状态
      */
-    @PostMapping("/notify")
-    public String handleNotify(@RequestParam Map<String, String> params) {
-        log.info("支付宝异步回调接收到参数: {}", params);
-        return borrowOrdersService.handleNotify(params);
+    @GetMapping("/pay/status")
+    public Integer getPayStatus(@RequestParam String orderNo) {
+        return borrowOrdersService.getPayStatus(orderNo);
     }
 
     /**

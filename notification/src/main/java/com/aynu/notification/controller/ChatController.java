@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 聊天相关接口
@@ -60,19 +63,16 @@ public class ChatController {
     }
 
     @GetMapping("/history")
-    @ApiOperation("分页获取聊天记录")
+    @ApiOperation("获取聊天记录")
     public Map<String, Object> getHistory(@ApiParam("用户A的ID") @RequestParam String userId1,
-                                          @ApiParam("用户B的ID") @RequestParam String userId2,
-                                          @ApiParam("页码，从0开始") @RequestParam(defaultValue = "0") int page,
-                                          @ApiParam("每页条数") @RequestParam(defaultValue = "20") int size) {
+                                          @ApiParam("用户B的ID") @RequestParam String userId2) {
         Long uid1 = parseLong(userId1);
         Long uid2 = parseLong(userId2);
         if (uid1 == null || uid2 == null) {
             return Map.of("code", 400, "message", "userId 参数无效");
         }
 
-        List<String> messages = chatWebSocketHandler.getChatHistory(uid1, uid2, page, size);
-        long total = chatWebSocketHandler.getMessageCount(uid1, uid2);
+        List<String> messages = chatWebSocketHandler.getChatHistory(uid1, uid2);
 
         // 拉取历史时清除未读
         chatWebSocketHandler.clearUnreadCount(uid1, uid2);
@@ -81,9 +81,7 @@ public class ChatController {
         result.put("code", 200);
         result.put("message", "success");
         result.put("data", messages);
-        result.put("total", total);
-        result.put("page", page);
-        result.put("size", size);
+        result.put("total", messages.size());
         return result;
     }
 

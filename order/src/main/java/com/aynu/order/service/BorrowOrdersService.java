@@ -12,7 +12,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Map;
 
 public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
 
@@ -35,7 +34,7 @@ public interface BorrowOrdersService extends IService<BorrowOrdersPO> {
 
     String payBorrowOrders(BorrowPayDTO dto);
 
-    String handleNotify(Map<String, String> params);
+    Integer getPayStatus(String orderNo);
 
     void syncWithAlipay(String orderNo);
 
